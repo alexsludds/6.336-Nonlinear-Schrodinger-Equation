@@ -1,6 +1,6 @@
 import numpy as np
 import scipy as sp
-
+import matplotlib.pyplot as plt
 def steady_state():
     delta_x = 0.1
     L = 1
@@ -9,22 +9,31 @@ def steady_state():
     con_mat = np.zeros((number_of_nodes,number_of_nodes))
     boundary_mat = np.zeros((number_of_nodes,number_of_nodes))
     for i in range(number_of_nodes):
-        con_mat[i,i] = -2
+        con_mat[i,i] = 2
         try:
-            con_mat[i,i-1] = 1
+            if(i!=0):
+                con_mat[i,i-1] = -1
         except:
             pass
         try:
-            con_mat[i,i+1] = 1
+            con_mat[i,i+1] = -1
         except:
             pass
-
-        boundary_mat[i,i] = -V
-
-    boundary_mat *= delta_x**2
-    print(np.linalg.eig(con_mat)[0])
-    eigenvalues = np.linalg.eig(boundary_mat - con_mat)
-    print(eigenvalues[0])
+    print(con_mat)
+    print(boundary_mat)
+    print(np.linalg.det(boundary_mat))
+    sum_mat = con_mat
+    w,v = np.linalg.eig(sum_mat)
+    small = w.argsort()[:3]
+    w = np.sort(w)
+    plt.plot(v[small[0]])
+    plt.plot(v[small[1]])
+    plt.plot(v[small[2]])
+    plt.show()
+    plt.plot(w)
+    plt.show()
+    plt.plot(w[:10])
+    plt.show()
 
 def forward_euler(f,u,x_start,p,t_start,t_stop,delta_t):
     x = x_start
