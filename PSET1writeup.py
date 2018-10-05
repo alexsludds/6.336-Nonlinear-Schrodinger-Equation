@@ -26,16 +26,22 @@ def steady_state():
     plt.show()
 
 
-def hamiltonian(n_nodes, v=None):
+def hamiltonian(n_nodes, v=None, dx=1., alpha=1.):
     """Return a matrix representing the Hamiltonian with first-type boundary conditions at 0"""
     if v is None:
         V_mat = np.zeros((n_nodes, n_nodes))
     else:
         V_mat = np.diag(v)
 
-    kinetic_mat = np.diag(np.ones(n_nodes)*2) - \
-                  np.diag(np.ones(n_nodes-1), 1) - \
+    # Matrix of 2nd derivatives
+    partial2_mat = np.diag(np.ones(n_nodes)*-2) + \
+                  np.diag(np.ones(n_nodes-1), 1) + \
                   np.diag(np.ones(n_nodes-1), -1)
+    # partial2_mat[0,:4] = np.array([-20, 6, 4, -1])/12.
+    # partial2_mat[-1, -4:] = np.array([-1, 4, 6, -20])/12.
+    partial2_mat *= alpha/dx**2
+    kinetic_mat = -partial2_mat
+    # print(kinetic_mat)
     return 1j*(kinetic_mat + V_mat)
 
 
@@ -56,10 +62,7 @@ def forward_euler(f, u, x_start, p, t_start, t_stop, delta_t):
     x_arr = []
 
     while t < t_stop:
-        # plt.plot(x)
         x = x + delta_t * f(x, u(t), p)
-        # plt.plot(x)
-        # plt.show()
         # TODO: Normalize
         n += 1
         t = t + delta_t
@@ -71,7 +74,8 @@ def forward_euler(f, u, x_start, p, t_start, t_stop, delta_t):
 if __name__ == '__main__':
     # steady_state()
     n_nodes = 10   # Number of nodes to solve for. Total number of nodes = n_nodes+2 because of boundary nodes
-    p = {'A': hamiltonian(n_nodes=n_nodes),
+    frame_interval = 5  # Interval of frame to print (i.e., print every 5th frame)
+    p = {'A': hamiltonian(n_nodes=n_nodes, dx=1/(n_nodes+2), alpha=1e-2),
          'B': np.zeros((n_nodes, n_nodes))}
     u = lambda _: np.zeros(n_nodes)
     x = np.linspace(0, 1, n_nodes+2)[1:-1]  # Note this x is spatial position, not solution
@@ -82,8 +86,7 @@ if __name__ == '__main__':
     psi_start = stationary_state_1
     t_start = 0.
     t_stop = 50.
-    delta_t = 0.1
-    # print(p["A"].dot(psi_start) + p["B"].dot(u(1)))
+    delta_t = 0.01
     x_final, x_arr = forward_euler(dxdt_f, u, psi_start, p, t_start, t_stop, delta_t)
 
     fig = plt.figure()
@@ -96,10 +99,11 @@ if __name__ == '__main__':
         l2.set_data([], [])
 
     def animate(i):
-        l1.set_data(x, np.real(x_arr[i]))
-        l2.set_data(x, np.imag(x_arr[i]))
+        l1.set_data(x, np.real(x_arr[i*frame_interval]))
+        l2.set_data(x, np.imag(x_arr[i*frame_interval]))
         return [l1, l2]
 
-    anim = animation.FuncAnimation(fig, animate, init_func=init, frames=int(t_stop/delta_t), interval=20)
+    anim = animation.FuncAnimation(fig, animate, init_func=init, frames=int(t_stop/delta_t/frame_interval), interval=1)
+
     plt.show()
 
