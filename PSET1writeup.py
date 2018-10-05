@@ -1,6 +1,7 @@
 import numpy as np
 import scipy as sp
 import matplotlib.pyplot as plt
+import matplotlib.animation as animation
 
 
 def steady_state():
@@ -35,12 +36,16 @@ def hamiltonian(n_nodes, v=None):
     kinetic_mat = np.diag(np.ones(n_nodes)*2) - \
                   np.diag(np.ones(n_nodes-1), 1) - \
                   np.diag(np.ones(n_nodes-1), -1)
+    return 1j*(kinetic_mat + V_mat)
 
-    return kinetic_mat + V_mat
 
-
-def schrodinger_f(x, u, p):
-    """Function for forward step of Schrodinger equation"""
+def dxdt_f(x, u, p):
+    """Function for forward step of a dynamical system with dx/dt = A*x(t) + B*u(t)
+    Parameters
+        x : unknown variable
+        u : input
+        p : dict containing "A" (nodal analysis matrix) and "B" (input matrix)
+    """
     return p["A"].dot(x) + p["B"].dot(u)
 
 
@@ -48,26 +53,51 @@ def forward_euler(f, u, x_start, p, t_start, t_stop, delta_t):
     x = x_start
     t = t_start
     n = 0
+    x_arr = []
 
     while t < t_stop:
+        # plt.plot(x)
         x = x + delta_t * f(x, u(t), p)
+        # plt.plot(x)
+        # plt.show()
+        # TODO: Normalize
         n += 1
         t = t + delta_t
-        plt.plot(x)
-        plt.show()
-    return x
+        x_arr.append(x)
+
+    return x, x_arr
 
 
 if __name__ == '__main__':
-    steady_state()
-    n_nodes = 100
-    p = {'A': hamiltonian(n_nodes=100),
+    # steady_state()
+    n_nodes = 10   # Number of nodes to solve for. Total number of nodes = n_nodes+2 because of boundary nodes
+    p = {'A': hamiltonian(n_nodes=n_nodes),
          'B': np.zeros((n_nodes, n_nodes))}
-    u = lambda x: np.zeros(n_nodes)
-    x_start = np.ones(n_nodes)
+    u = lambda _: np.zeros(n_nodes)
+    x = np.linspace(0, 1, n_nodes+2)[1:-1]  # Note this x is spatial position, not solution
+    # Initial state is combination of 1st and 2nd mode
+    stationary_state_1 = np.sqrt(2)*np.sin(np.pi*x)
+    stationary_state_2 = np.sqrt(2) * np.sin(2*np.pi*x)
+    # psi_start = 1/np.sqrt(2)*stationary_state_1 + 1/np.sqrt(2)*stationary_state_2
+    psi_start = stationary_state_1
     t_start = 0.
-    t_stop = 10.
+    t_stop = 50.
     delta_t = 0.1
-    x_final = forward_euler(schrodinger_f, u, x_start, p, t_start, t_stop, delta_t)
-    plt.plot(x_final)
+    # print(p["A"].dot(psi_start) + p["B"].dot(u(1)))
+    x_final, x_arr = forward_euler(dxdt_f, u, psi_start, p, t_start, t_stop, delta_t)
+
+    fig = plt.figure()
+    ax = plt.axes(xlim=(0, 1), ylim=(-2, 2))
+    l1, = plt.plot([], [], color='b')
+    l2, = plt.plot([], [], color='g')
+
+    def init():
+        l1.set_data([], [])
+        l2.set_data([], [])
+    def animate(i):
+        l1.set_data(x, np.real(x_arr[i]))
+        l2.set_data(x, np.imag(x_arr[i]))
+        return [l1, l2]
+    anim = animation.FuncAnimation(fig, animate, init_func=init, frames=int(t_stop/delta_t), interval=20)
     plt.show()
+
