@@ -99,7 +99,7 @@ if __name__ == '__main__':
         l1.set_data(x, np.real(x_arr[i]))
         l2.set_data(x, np.imag(x_arr[i]))
         return [l1, l2]
-    
+
     anim = animation.FuncAnimation(fig, animate, init_func=init, frames=int(t_stop/delta_t), interval=20)
     plt.show()
 
