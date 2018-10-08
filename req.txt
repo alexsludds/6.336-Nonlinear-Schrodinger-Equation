@@ -1,0 +1,5 @@
+progress
+numpy
+scipy
+matplotlib.pyplot
+array2gif

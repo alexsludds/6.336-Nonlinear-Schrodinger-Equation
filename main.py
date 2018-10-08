@@ -1,15 +1,17 @@
 import numpy as np
 import scipy as sp
+import matplotlib
+matplotlib.use("Qt4Agg") #We are using the qt backend because tkiner backend does not allow for gif creation without an open window
 import matplotlib.pyplot as plt
 import time
 from array2gif import write_gif
 import matplotlib.animation as animation
 from progress.bar import Bar
-
+import os,sys
 
 class Simulation:
     def __init__(self, x_start=0, x_stop=1, number_of_psi=100, number_of_spatial_dimensions=1,
-                 potential_function=lambda x: 0):
+                 potential_function=lambda x: 0, non_linear = False, alpha=1e-12):
         self.number_of_psi = number_of_psi
         self.number_of_spatial_dimensions = number_of_spatial_dimensions
         self.constituent_matrix = None
@@ -18,6 +20,9 @@ class Simulation:
         self.x_stop = x_stop
         self.potential_function = potential_function
         self.linspace = np.linspace(self.x_start, self.x_stop, num=self.number_of_psi-2)
+        self.alpha = alpha
+        self.dx = (self.x_stop - self.x_start)/self.number_of_psi
+        self.non_linear = non_linear
 
     """
     Returns a copy of matrix describing relationships between Psi's
@@ -32,12 +37,34 @@ class Simulation:
             return D
 
         elif self.number_of_spatial_dimensions == 2:
-            tensor_product = np.tensordot(D,D,axes=0)
-            self.constituent_matrix = tensor_product
-            return tensor_product
+            #TODO: Clean this up and consider boundary conditions
+            #This basically just generates a block matrix of the 2D case.
+            #Best way to see this work is to swap all of the toblock.append(D) to something like toblock.append("D") then print Q at the end
+            D = -1*np.diag(np.ones(self.number_of_psi-1), 1) - 1* np.diag(np.ones(self.number_of_psi-1),-1)
+            np.fill_diagonal(D,4)
+            I = np.eye(self.number_of_psi)
+            Z = np.zeros((self.number_of_psi,self.number_of_psi))
+            toblock = []
+            toblockarray = []
+            for row in range(self.number_of_psi):
+                toblock = []
+                for col in range(self.number_of_psi):
+                    if row == col:
+                        toblock.append(D)
+                    elif row == col-1:
+                        toblock.append(I)
+                    elif row == col+1:
+                        toblock.append(I)
+                    else:
+                        toblock.append(Z)
+                toblockarray.append(toblock)
+            Q = np.block(toblockarray)
+            self.constituent_matrix = Q
+            return Q
 
         elif self.number_of_spatial_dimensions == 3:
             pass
+
     """
     Given the values of x_start, x_stop, and the potential function that is defined
     """
@@ -60,10 +87,16 @@ class Simulation:
         eigenvectors = -1*eigenvectors.T  # possibly the most cursed thing in numpy
         return eigenvalues, eigenvectors
 
+    """
+    Calculates the Hamiltonian of the system, which is i*(constituent matrix + potential matrix)
+    """
     def hamiltonian(self):
         hamiltonian = 1j*(self.constituent_matrix + self.potential_matrix)
         return hamiltonian
 
+    """
+    Performs the forward_euler method. We use this as a way of advancing time on the wave-form
+    """
     def forward_euler(self, f, u, x_start, p, t_start, t_stop, delta_t):
         x = x_start
         t = t_start
@@ -75,8 +108,9 @@ class Simulation:
             n += 1
             t = t + delta_t
             # normalize
-            norm = np.linalg.norm(x)
-            x = x/norm
+            if self.non_linear == False:
+                norm = np.linalg.norm(x)
+                x = x/norm
             x_arr.append(x)
             bar.next()
         bar.finish()
@@ -91,18 +125,31 @@ class Simulation:
 
 
 class AnimationClass:
-    def __init__(self, fps, x, x_arr, runtime_seconds=10, delta_t=0.005, playback_speed=1):
-        self.fig = plt.figure()
+    def __init__(self, fps, x, x_arr, runtime_seconds=10, delta_t=0.005, playback_speed=1,
+                 gif_name = "test.gif"):
+        self.fig = plt.figure(figsize=(8,6),dpi=200)
         self.ax = plt.axes(xlim=(0, 1), ylim=(-1, 1))
         self.l1, = plt.plot([], [], color='b')
         self.l2, = plt.plot([], [], color='g')
         self.fps = fps
         self.x = x
+        self.gif_name = gif_name
+        self.anim = None
+
+        #Append to x_arr such that we have the boundary conditions
         self.x_arr = x_arr
+        self.include_boundary_conditions()
+
         # self.time_step = int(len(self.x_arr)/(self.fps*self.runtime_seconds))
         # TODO: Clean up all this mess regarding frames and playback speed
         self.frame_step = int(playback_speed / delta_t / fps)
         self.n_frames = int(runtime_seconds*self.fps/playback_speed)
+
+    def include_boundary_conditions(self):
+        #TODO Add ability to have boundary condition other than just zero
+        x_arr_temp = list(map(lambda x: np.append(x,0),self.x_arr))
+        self.x_arr = list(map(lambda x: np.insert(x,0,0), x_arr_temp))
+        return self.x_arr
 
     def animate(self, i):
         self.l1.set_data(self.x, np.real(self.x_arr[self.frame_step*i]))
@@ -114,10 +161,34 @@ class AnimationClass:
         self.l2.set_data([], [])
 
     def run_animation(self):
-        anim = animation.FuncAnimation(self.fig, self.animate, init_func=self.initialize,
+        self.anim = animation.FuncAnimation(self.fig, self.animate, init_func=self.initialize,
                                        frames=self.n_frames, interval=int(1000/self.fps))
         plt.show()
 
+    def create_gif(self):
+        create_gif_input = input("Do you want to create a gif of the animation? (y/n)")
+        if create_gif_input == "n":
+            return
+        print("Creating gif")
+        if(self.anim == None):
+            print("Please run animate in order to create the animation object for gif creation")
+            return
+        else:
+            self.anim.save("multimedia/" + str(self.gif_name) + ".gif", dpi=200, writer='ffmpeg', codec="libx265")  
+        print("Gif created with name: ",self.gif_name)
+
+    def create_video(self):
+        create_video_input = input("Do you want to create a video of the animation? (y/n)")
+        if create_video_input == "n":
+            return
+        print("Creating video")
+        if(self.anim == None):
+            print("Please run animate in order to create the animation object for video creation")
+            return
+        else:
+            #TODO: Fix fps of the exported video to match that of the animation 
+            self.anim.save("multimedia/" + str(self.gif_name) + ".mp4", dpi=200, writer="ffmpeg", codec = "libx265")
+        print("Video created with name: ", self.gif_name)
 
 if __name__ == "__main__":
     number_of_psi = 10  # This is the total number of nodes. We are solving for number of nodes -2
@@ -127,10 +198,9 @@ if __name__ == "__main__":
     stop_x = 1
     hbar = 1.0545718E-34
     gif_animation_frames_per_second = 100
-    write_gif_bool = False
     display_animation = True
     plot_stationary_solution = False
-    gif_name = "test.gif"
+    gif_name = "test"
     time_start = 0
     time_stop = 100
     delta_t = 0.005
@@ -148,7 +218,7 @@ if __name__ == "__main__":
         sim.plot_stationary(eigenvectors[mode-1])
 
     # stationary_state = eigenvectors[mode-1]
-    if write_gif_bool or display_animation:
+    if display_animation:
         # Initial state is one of the stationary states
         init_state = np.sqrt(2) * np.sin(mode * np.pi * np.linspace(start_x, stop_x, number_of_psi)[1:-1])
 
@@ -163,11 +233,9 @@ if __name__ == "__main__":
         # Display animation
         if display_animation:
             ani = AnimationClass(fps=gif_animation_frames_per_second,
-                                 x=np.linspace(start_x, stop_x, number_of_psi)[1:-1],
-                                 x_arr=x_arr, runtime_seconds=time_stop, delta_t=delta_t, playback_speed=10)
+                                 x=np.linspace(start_x, stop_x, number_of_psi),
+                                 x_arr=x_arr, runtime_seconds=time_stop, delta_t=delta_t, playback_speed=10,
+                                 gif_name =  gif_name)
             ani.run_animation()
-
-        # Create gif from data
-        if write_gif_bool:
-            print(x_arr[0])
-            # write_gif(,gif_name,fps=30)
+            ani.create_gif()
+            ani.create_video()

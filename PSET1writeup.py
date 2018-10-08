@@ -73,7 +73,7 @@ def forward_euler(f, u, x_start, p, t_start, t_stop, delta_t):
 
 if __name__ == '__main__':
     # steady_state()
-    n_nodes = 10   # Number of nodes to solve for. Total number of nodes = n_nodes+2 because of boundary nodes
+    n_nodes = 100   # Number of nodes to solve for. Total number of nodes = n_nodes+2 because of boundary nodes
     frame_interval = 5  # Interval of frame to print (i.e., print every 5th frame)
     p = {'A': hamiltonian(n_nodes=n_nodes, dx=1/(n_nodes+2), alpha=1e-2),
          'B': np.zeros((n_nodes, n_nodes))}
