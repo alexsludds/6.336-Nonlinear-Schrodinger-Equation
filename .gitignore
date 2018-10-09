@@ -5,3 +5,6 @@
 __pycache__/
 *.py[cod]
 *$py.class
+
+#Content from gif and mp4 creation
+multimedia/
