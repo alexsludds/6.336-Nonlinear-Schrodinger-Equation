@@ -1,6 +1,7 @@
 import numpy as np
 import scipy as sp
 import matplotlib.pyplot as plt
+plt.rcParams.update({'font.size': 22})
 import time
 from array2gif import write_gif
 import matplotlib.animation as animation
@@ -94,8 +95,8 @@ class AnimationClass:
     def __init__(self, fps, x, x_arr, runtime_seconds=10, delta_t=0.005, playback_speed=1):
         self.fig = plt.figure()
         self.ax = plt.axes(xlim=(0, 1), ylim=(-1, 1))
-        self.l1, = plt.plot([], [], color='b')
-        self.l2, = plt.plot([], [], color='g')
+        self.l1, = plt.plot([], [], color='b', label='Real')
+        self.l2, = plt.plot([], [], color='g', label='Imaginary')
         self.fps = fps
         self.x = x
         self.x_arr = x_arr
@@ -171,3 +172,30 @@ if __name__ == "__main__":
         if write_gif_bool:
             print(x_arr[0])
             # write_gif(,gif_name,fps=30)
+
+        # Hacking plotting a couple frames
+        plt.figure()
+        x0 = x_arr[100]
+        x0 = np.insert(x0, 0, 0)
+        x0 = np.append(x0, 0)
+        plt.plot(np.linspace(start_x, stop_x, number_of_psi), np.real(x0), label='Real')
+        plt.plot(np.linspace(start_x, stop_x, number_of_psi), np.imag(x0), label='Imag')
+        plt.xlabel('Position')
+        plt.ylabel('Wavefunction')
+        plt.legend()
+        plt.ylim((-0.5, 0.5))
+        plt.tight_layout()
+
+
+        plt.figure()
+        x0 = x_arr[8000]
+        x0 = np.insert(x0, 0, 0)
+        x0 = np.append(x0, 0)
+        plt.plot(np.linspace(start_x, stop_x, number_of_psi), np.real(x0), label='Real')
+        plt.plot(np.linspace(start_x, stop_x, number_of_psi), np.imag(x0), label='Imag')
+        plt.ylim((-0.5, 0.5))
+        plt.xlabel('Position')
+        plt.ylabel('Wavefunction')
+        plt.legend()
+        plt.tight_layout()
+        plt.show()
