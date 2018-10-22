@@ -3,7 +3,6 @@ import scipy as sp
 import matplotlib
 matplotlib.use("Qt4Agg") #We are using the qt backend because tkiner backend does not allow for gif creation without an open window
 import matplotlib.pyplot as plt
-plt.rcParams.update({'font.size': 22})
 import time
 from array2gif import write_gif
 import matplotlib.animation as animation
@@ -109,7 +108,7 @@ class Simulation:
             n += 1
             t = t + delta_t
             # normalize
-            if self.non_linear == False:
+            if not self.non_linear:
                 norm = np.linalg.norm(x)
                 x = x/norm
             x_arr.append(x)
@@ -124,14 +123,29 @@ class Simulation:
     def dxdt_f(self, x, u, p):
         return p["A"].dot(x) + p["B"].dot(u)
 
+    def calc_jacobian_numerical(self, f, x, u, p, epsilon):
+        """Return the Jacobian calculated using finite-difference
+        The Jacobian is size (n, 2n) where n is size of x because x is complex"""
+        jacobian = np.zeros((self.number_of_psi-2, 2*self.number_of_psi), dtype=complex)
+        f0 = f(x, u, p)
+        # print(f0)
+        for i in range(len(x)):
+            delta_x = np.zeros(self.number_of_psi-2)
+            delta_x[i] = epsilon
+            j_i_real = (f(x + delta_x, u, p) - f0)/epsilon
+            j_i_imag = (f(x + 1.0j*delta_x, u, p) - f0)/(epsilon*1.0j)
+            jacobian[:, 2*i] = j_i_real
+            jacobian[:, 2*i+1] = j_i_imag
+        return jacobian
+
 
 class AnimationClass:
     def __init__(self, fps, x, x_arr, runtime_seconds=10, delta_t=0.005, playback_speed=1,
                  gif_name = "test.gif"):
         self.fig = plt.figure(figsize=(8,6),dpi=200)
         self.ax = plt.axes(xlim=(0, 1), ylim=(-1, 1))
-        self.l1, = plt.plot([], [], color='b', label='Real')
-        self.l2, = plt.plot([], [], color='g', label='Imaginary')
+        self.l1, = plt.plot([], [], color='b')
+        self.l2, = plt.plot([], [], color='g')
         self.fps = fps
         self.x = x
         self.gif_name = gif_name
@@ -191,6 +205,7 @@ class AnimationClass:
             self.anim.save("multimedia/" + str(self.gif_name) + ".mp4", dpi=200, writer="ffmpeg", codec = "libx265")
         print("Video created with name: ", self.gif_name)
 
+
 if __name__ == "__main__":
     number_of_psi = 10  # This is the total number of nodes. We are solving for number of nodes -2
     number_of_spatial_dimensions = 1
@@ -199,7 +214,7 @@ if __name__ == "__main__":
     stop_x = 1
     hbar = 1.0545718E-34
     gif_animation_frames_per_second = 100
-    display_animation = True
+    display_animation = False
     plot_stationary_solution = False
     gif_name = "test"
     time_start = 0
@@ -218,16 +233,24 @@ if __name__ == "__main__":
     if plot_stationary_solution:
         sim.plot_stationary(eigenvectors[mode-1])
 
+
+    def u(_):
+        return np.zeros(number_of_psi - 2)
+
+
+    init_state = np.sqrt(2) * np.sin(mode * np.pi * np.linspace(start_x, stop_x, number_of_psi)[1:-1])
+    p = {'A': hamiltonian,
+         'B': np.zeros((number_of_psi - 2, number_of_psi - 2))}
+
+    # Testing Jacobian
+    jacobian = sim.calc_jacobian_numerical(sim.dxdt_f, init_state, u(0), p, 1e-3)
+    # print(jacobian)
+
     # stationary_state = eigenvectors[mode-1]
     if display_animation:
         # Initial state is one of the stationary states
-        init_state = np.sqrt(2) * np.sin(mode * np.pi * np.linspace(start_x, stop_x, number_of_psi)[1:-1])
 
-        def u(_):
-            return np.zeros(number_of_psi-2)
 
-        p = {'A': hamiltonian,
-             'B': np.zeros((number_of_psi-2, number_of_psi-2))}
         x_final, x_arr = sim.forward_euler(sim.dxdt_f, u, init_state, p, t_start=time_start, t_stop=time_stop,
                                            delta_t=delta_t)
 
@@ -240,30 +263,3 @@ if __name__ == "__main__":
             ani.run_animation()
             ani.create_gif()
             ani.create_video()
-
-        # Hacking plotting a couple frames
-        plt.figure()
-        x0 = x_arr[100]
-        x0 = np.insert(x0, 0, 0)
-        x0 = np.append(x0, 0)
-        plt.plot(np.linspace(start_x, stop_x, number_of_psi), np.real(x0), label='Real')
-        plt.plot(np.linspace(start_x, stop_x, number_of_psi), np.imag(x0), label='Imag')
-        plt.xlabel('Position')
-        plt.ylabel('Wavefunction')
-        plt.legend()
-        plt.ylim((-0.5, 0.5))
-        plt.tight_layout()
-
-
-        plt.figure()
-        x0 = x_arr[8000]
-        x0 = np.insert(x0, 0, 0)
-        x0 = np.append(x0, 0)
-        plt.plot(np.linspace(start_x, stop_x, number_of_psi), np.real(x0), label='Real')
-        plt.plot(np.linspace(start_x, stop_x, number_of_psi), np.imag(x0), label='Imag')
-        plt.ylim((-0.5, 0.5))
-        plt.xlabel('Position')
-        plt.ylabel('Wavefunction')
-        plt.legend()
-        plt.tight_layout()
-        plt.show()
