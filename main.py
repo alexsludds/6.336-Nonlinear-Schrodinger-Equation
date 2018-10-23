@@ -37,9 +37,9 @@ class Simulation:
             return D
 
         elif self.number_of_spatial_dimensions == 2:
-            #TODO: Clean this up and consider boundary conditions
-            #This basically just generates a block matrix of the 2D case.
-            #Best way to see this work is to swap all of the toblock.append(D) to something like toblock.append("D") then print Q at the end
+            # TODO: Clean this up and consider boundary conditions
+            # This basically just generates a block matrix of the 2D case.
+            # Best way to see this work is to swap all of the toblock.append(D) to something like toblock.append("D") then print Q at the end
             D = -1*np.diag(np.ones(self.number_of_psi-1), 1) - 1* np.diag(np.ones(self.number_of_psi-1),-1)
             np.fill_diagonal(D,4)
             I = np.eye(self.number_of_psi)
@@ -122,6 +122,11 @@ class Simulation:
 
     def dxdt_f(self, x, u, p):
         return p["A"].dot(x) + p["B"].dot(u)
+
+    def nonlinear_matrix(self, x):
+        D = self.generate_constituent_matrix
+        D = D + np.diag(np.square(np.abs(x)))
+        return D
 
     def calc_jacobian_numerical(self, f, x, u, p, epsilon):
         """Return the Jacobian calculated using finite-difference
