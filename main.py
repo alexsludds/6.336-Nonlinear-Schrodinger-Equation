@@ -3,25 +3,25 @@ import scipy as sp
 import matplotlib
 matplotlib.use("Qt4Agg") #We are using the qt backend because tkiner backend does not allow for gif creation without an open window
 import matplotlib.pyplot as plt
-import time
 from array2gif import write_gif
 import matplotlib.animation as animation
 from progress.bar import Bar
 import os,sys
 
+
 class Simulation:
     def __init__(self, x_start=0, x_stop=1, number_of_psi=100, number_of_spatial_dimensions=1,
-                 potential_function=lambda x: 0, non_linear = False, alpha=1e-12):
+                 potential_function=lambda x: 0, non_linear=False, alpha=1e-12):
         self.number_of_psi = number_of_psi
         self.number_of_spatial_dimensions = number_of_spatial_dimensions
         self.constituent_matrix = None
         self.potential_matrix = None
         self.x_start = x_start
         self.x_stop = x_stop
-        self.potential_function = potential_function
-        self.linspace = np.linspace(self.x_start, self.x_stop, num=self.number_of_psi-2)
+        self.potential_function = potential_function    # Default is infinite square well
+        self.linspace = np.linspace(self.x_start, self.x_stop, num=self.number_of_psi)[1:-1]
         self.alpha = alpha
-        self.dx = (self.x_stop - self.x_start)/self.number_of_psi
+        self.dx = (self.x_stop - self.x_start)/(self.number_of_psi-1)
         self.non_linear = non_linear
 
     """
@@ -39,7 +39,8 @@ class Simulation:
         elif self.number_of_spatial_dimensions == 2:
             # TODO: Clean this up and consider boundary conditions
             # This basically just generates a block matrix of the 2D case.
-            # Best way to see this work is to swap all of the toblock.append(D) to something like toblock.append("D") then print Q at the end
+            # Best way to see this work is to swap all of the toblock.append(D) to something like toblock.append("D")
+            # then print Q at the end
             D = -1*np.diag(np.ones(self.number_of_psi-1), 1) - 1* np.diag(np.ones(self.number_of_psi-1),-1)
             np.fill_diagonal(D,4)
             I = np.eye(self.number_of_psi)
@@ -124,7 +125,7 @@ class Simulation:
         return p["A"].dot(x) + p["B"].dot(u)
 
     def nonlinear_matrix(self, x):
-        D = self.generate_constituent_matrix
+        D = self.hamiltonian
         D = D + np.diag(np.square(np.abs(x)))
         return D
 
@@ -156,7 +157,7 @@ class AnimationClass:
         self.gif_name = gif_name
         self.anim = None
 
-        #Append to x_arr such that we have the boundary conditions
+        # Append to x_arr such that we have the boundary conditions
         self.x_arr = x_arr
         self.include_boundary_conditions()
 
@@ -166,9 +167,9 @@ class AnimationClass:
         self.n_frames = int(runtime_seconds*self.fps/playback_speed)
 
     def include_boundary_conditions(self):
-        #TODO Add ability to have boundary condition other than just zero
-        x_arr_temp = list(map(lambda x: np.append(x,0),self.x_arr))
-        self.x_arr = list(map(lambda x: np.insert(x,0,0), x_arr_temp))
+        # TODO Add ability to have boundary condition other than just zero
+        x_arr_temp = list(map(lambda x: np.append(x, 0), self.x_arr))
+        self.x_arr = list(map(lambda x: np.insert(x, 0, 0), x_arr_temp))
         return self.x_arr
 
     def animate(self, i):
@@ -190,7 +191,7 @@ class AnimationClass:
         if create_gif_input == "n":
             return
         print("Creating gif")
-        if(self.anim == None):
+        if self.anim is None:
             print("Please run animate in order to create the animation object for gif creation")
             return
         else:
@@ -202,11 +203,11 @@ class AnimationClass:
         if create_video_input == "n":
             return
         print("Creating video")
-        if(self.anim == None):
+        if self.anim is None:
             print("Please run animate in order to create the animation object for video creation")
             return
         else:
-            #TODO: Fix fps of the exported video to match that of the animation
+            # TODO: Fix fps of the exported video to match that of the animation
             self.anim.save("multimedia/" + str(self.gif_name) + ".mp4", dpi=200, writer="ffmpeg", codec = "libx265")
         print("Video created with name: ", self.gif_name)
 
@@ -243,6 +244,7 @@ if __name__ == "__main__":
         return np.zeros(number_of_psi - 2)
 
 
+    # Initial state is one of the stationary states
     init_state = np.sqrt(2) * np.sin(mode * np.pi * np.linspace(start_x, stop_x, number_of_psi)[1:-1])
     p = {'A': hamiltonian,
          'B': np.zeros((number_of_psi - 2, number_of_psi - 2))}
@@ -251,20 +253,17 @@ if __name__ == "__main__":
     jacobian = sim.calc_jacobian_numerical(sim.dxdt_f, init_state, u(0), p, 1e-3)
     # print(jacobian)
 
+    x_final, x_arr = sim.forward_euler(sim.dxdt_f, u, init_state, p, t_start=time_start, t_stop=time_stop,
+                                       delta_t=delta_t)
+
     # stationary_state = eigenvectors[mode-1]
+
+    # Display animation
     if display_animation:
-        # Initial state is one of the stationary states
-
-
-        x_final, x_arr = sim.forward_euler(sim.dxdt_f, u, init_state, p, t_start=time_start, t_stop=time_stop,
-                                           delta_t=delta_t)
-
-        # Display animation
-        if display_animation:
-            ani = AnimationClass(fps=gif_animation_frames_per_second,
-                                 x=np.linspace(start_x, stop_x, number_of_psi),
-                                 x_arr=x_arr, runtime_seconds=time_stop, delta_t=delta_t, playback_speed=10,
-                                 gif_name =  gif_name)
-            ani.run_animation()
-            ani.create_gif()
-            ani.create_video()
+        ani = AnimationClass(fps=gif_animation_frames_per_second,
+                             x=np.linspace(start_x, stop_x, number_of_psi),
+                             x_arr=x_arr, runtime_seconds=time_stop, delta_t=delta_t, playback_speed=10,
+                             gif_name =  gif_name)
+        ani.run_animation()
+        ani.create_gif()
+        ani.create_video()
