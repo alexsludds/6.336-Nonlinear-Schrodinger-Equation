@@ -274,7 +274,7 @@ if __name__ == "__main__":
     plot_stationary_solution = False
     gif_name = "test"
     time_start = 0
-    time_stop = 100
+    time_stop = 10
     delta_t = 1e-4
 
     animation_timestep = int(time_stop / delta_t / gif_animation_frames_per_second)
