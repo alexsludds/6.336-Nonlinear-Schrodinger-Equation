@@ -8,7 +8,8 @@ import matplotlib.pyplot as plt
 from array2gif import write_gif
 import matplotlib.animation as animation
 from progress.bar import Bar
-import os, sys
+import os, sys, time
+from benchmark import benchmark
 
 
 class Simulation:
@@ -29,6 +30,7 @@ class Simulation:
     """
     Returns a copy of matrix describing relationships between Psi's
     """
+    @benchmark
     def generate_constituent_matrix(self):
         # negative of 2nd derivative: on-diagonal terms = 2, off diagonal terms to -1
         D = -1*np.diag(np.ones(self.number_of_psi-3), 1) - np.diag(np.ones(self.number_of_psi-3), -1)
@@ -72,6 +74,7 @@ class Simulation:
     """
     Given the values of x_start, x_stop, and the potential function that is defined
     """
+    @benchmark
     def generate_potential_matrix(self):
         potential_values = np.array(list(map(self.potential_function, self.linspace)))
         diagonal_matrix = np.diag(potential_values)
@@ -81,6 +84,7 @@ class Simulation:
     """
     Given the Hermitian matrix return the eigenvalues and eigenvectors
     """
+    @benchmark
     def find_eigenvalues(self, H_matrix):
         eigenvalues, eigenvectors = np.linalg.eig(H_matrix)
         # eigenvectors = eigenvectors.T #possibly the more cursed thing numpy ever implemented
@@ -94,6 +98,7 @@ class Simulation:
     """
     Calculates the Hamiltonian of the system, which is i*(constituent matrix + potential matrix)
     """
+    @benchmark
     def hamiltonian(self):
         hamiltonian = 1j*(self.constituent_matrix + self.potential_matrix)
         return hamiltonian
@@ -101,7 +106,9 @@ class Simulation:
     """
     Performs the forward_euler method. We use this as a way of advancing time on the wave-form
     """
-    def forward_euler(self, f, u, x_start, p, t_start, t_stop, delta_t):
+    @benchmark
+    #Forward euler is faster, but unstable
+    def forward_euler(self, f, u, x_start, p, t_start, t_stop, delta_t, animation_timestep):
         x = x_start
         t = t_start
         n = 0
@@ -115,23 +122,61 @@ class Simulation:
             if not self.non_linear:
                 norm = np.linalg.norm(x)
                 x = x/norm
-            x_arr.append(x)
+            #Save only usable frames
+            if n % animation_timestep == 0:
+                x_arr.append(x)
             bar.next()
         bar.finish()
         return x, x_arr
 
+    @benchmark
+    #Trapezoidal rule is slower, but stable
+    def trapezoidal(self, f, u, x_start, p, t_start, t_stop, delta_t, animation_timestep):
+        x = x_start
+        t = t_start
+        x_arr = []
+        n = 0
+        #TODO This is the slow version of the trapezoidal rule, we should get around to implementing the iterative version at some point
+        inverse = np.linalg.inv(np.eye(x.shape[0],x.shape[0])-delta_t/2. * p['A'])
+        bar = Bar("Processing",max=int((t_stop-t_start)/delta_t))
+        while t < t_stop:
+            if t == 0:
+                x = f(x,u(0),u(0),p,delta_t,inverse)
+            else:
+                x = x + f(x, u(t-1),u(t),p,delta_t,inverse)
+            t = t + delta_t
+            n += 1
+            #normalize
+            if not self.non_linear:
+                norm = np.linalg.norm(x)
+                x = x/norm
+            #Save only usable frames
+            if n % animation_timestep == 0:
+                x_arr.append(x)
+            bar.next()
+        bar.finish()
+        return x,x_arr
+
+    @benchmark
     def plot_stationary(self, eigenvector):
         plt.plot(self.linspace, eigenvector)
         plt.show()
 
+    #Don't benchmark this function, it is fast and gets called A LOT by forward euler
     def dxdt_f(self, x, u, p):
         return p["A"].dot(x) + p["B"].dot(u)
 
+    def dxdt_f_trapezoid(self,x,u_previous,u_current,p,delta_t,inverse):
+        RHS = x + delta_t/2.*p['B'].dot(u_previous) + delta_t/2.*p['B'].dot(u_current) + delta_t/2.*p['A'].dot(x)
+        return np.dot(inverse,RHS)
+
+    @benchmark
     def nonlinear_matrix(self, x):
         D = self.hamiltonian
         D = D + np.diag(np.square(np.abs(x)))
         return D
 
+    @benchmark
     def calc_jacobian_numerical(self, f, x, u, p, epsilon):
         """Return the Jacobian calculated using finite-difference
         The Jacobian is size (n, 2n) where n is size of x because x is complex"""
@@ -176,8 +221,8 @@ class AnimationClass:
         return self.x_arr
 
     def animate(self, i):
-        self.l1.set_data(self.x, np.real(self.x_arr[self.frame_step*i]))
-        self.l2.set_data(self.x, np.imag(self.x_arr[self.frame_step*i]))
+        self.l1.set_data(self.x, np.real(self.x_arr[i]))
+        self.l2.set_data(self.x, np.imag(self.x_arr[i]))
         return [self.l1, self.l2]
 
     def initialize(self):
@@ -215,6 +260,7 @@ class AnimationClass:
         print("Video created with name: ", self.gif_name)
 
 
+
 if __name__ == "__main__":
     number_of_psi = 10  # This is the total number of nodes.
     # We are solving for number_of_psi-2 because of boundary conditions
@@ -223,13 +269,17 @@ if __name__ == "__main__":
     start_x = 0
     stop_x = 1
     hbar = sp.constants.h / (2*sp.pi)   # Reduced Planck constant = 1.055e-34 J s/rad
-    gif_animation_frames_per_second = 100
+    gif_animation_frames_per_second = 1000
     display_animation = True
     plot_stationary_solution = False
     gif_name = "test"
     time_start = 0
-    time_stop = 10
+    time_stop = 100
     delta_t = 1e-4
+
+    animation_timestep = int(time_stop / delta_t / gif_animation_frames_per_second)
+
+
 
     sim = Simulation(x_start=start_x, x_stop=stop_x, number_of_psi=number_of_psi,
                      number_of_spatial_dimensions=number_of_spatial_dimensions)
@@ -256,8 +306,11 @@ if __name__ == "__main__":
     jacobian = sim.calc_jacobian_numerical(sim.dxdt_f, init_state, u(0), p, 1e-3)
     # print(jacobian)
 
-    x_final, x_arr = sim.forward_euler(sim.dxdt_f, u, init_state, p, t_start=time_start, t_stop=time_stop,
-                                       delta_t=delta_t)
+    # x_final, x_arr = sim.forward_euler(sim.dxdt_f, u, init_state, p, t_start=time_start, t_stop=time_stop,
+    #                                    delta_t=delta_t, animation_timestep = animation_timestep)
+
+    x_final, x_arr = sim.trapezoidal(sim.dxdt_f_trapezoid, u, init_state, p, t_start=time_start, t_stop = time_stop,
+                                       delta_t=delta_t, animation_timestep = animation_timestep)
 
     # stationary_state = eigenvectors[mode-1]
 
