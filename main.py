@@ -138,7 +138,7 @@ class Simulation:
         n = 0
         #TODO This is the slow version of the trapezoidal rule, we should get around to implementing the iterative version at some point
         inverse = np.linalg.inv(np.eye(x.shape[0],x.shape[0])-delta_t/2. * p['A'])
-        bar = Bar("Processing",max=int((t_stop-t_start)/delta_t))
+        bar = Bar("Processing",max=int((t_stop-t_start)/delta_t), suffix = '%(percent).1f%% - %(eta)ds')
         while t < t_stop:
             if t == 0:
                 x = f(x,u(0),u(0),p,delta_t,inverse)
@@ -194,16 +194,16 @@ class Simulation:
 
 
 class AnimationClass:
-    def __init__(self, fps, x, x_arr, runtime_seconds=10, delta_t=0.005, playback_speed=1,
+    def __init__(self, animation_interval , x, x_arr, runtime_seconds=10, delta_t=0.005,
                  gif_name="test.gif"):
         self.fig = plt.figure(figsize=(8, 6), dpi=200)
         self.ax = plt.axes(xlim=(0, 1), ylim=(-1, 1))
         self.l1, = plt.plot([], [], color='b')
         self.l2, = plt.plot([], [], color='g')
-        self.fps = fps
         self.x = x
         self.gif_name = gif_name
         self.anim = None
+        self.animation_interval = animation_interval
 
         # Append to x_arr such that we have the boundary conditions
         self.x_arr = x_arr
@@ -211,8 +211,7 @@ class AnimationClass:
 
         # self.time_step = int(len(self.x_arr)/(self.fps*self.runtime_seconds))
         # TODO: Clean up all this mess regarding frames and playback speed
-        self.frame_step = int(playback_speed / delta_t / fps)
-        self.n_frames = int(runtime_seconds*self.fps/playback_speed)
+        self.n_frames = int(runtime_seconds/delta_t/animation_interval)
 
     def include_boundary_conditions(self):
         # TODO Add ability to have boundary condition other than just zero
@@ -225,14 +224,39 @@ class AnimationClass:
         self.l2.set_data(self.x, np.imag(self.x_arr[i]))
         return [self.l1, self.l2]
 
+    def animate_with_velocity(self,i):
+        #We want to get the self.x_arr data and create a version which shifts over time by velocity at each timestep
+        #First to do this we must get self.x and extend it. We know that the spacing in self.x is linear so we can find the spacing by doing (last-first)/num_samples
+        spacing = (self.x[-1]-self.x[0])/self.x.shape[0]
+
+        #We update this by using an array of size   self.x.shape[0] + number_of_time_steps*velocity
+        number_of_elements = self.x.shape[0] + len(self.x_arr)*self.velocity
+        extended_x = np.linspace(start=self.x[0],stop=self.x[0] + spacing * number_of_elements ,num= number_of_elements)
+        #We want to get x_arr and append time_step * velocity  zeros to the beginning of each sample
+        new_x_arr = np.zeros(number_of_elements, dtype = np.complex128)
+        new_x_arr[i*self.velocity : i*self.velocity + len(self.x_arr[i])] = self.x_arr[i]
+        #We want to update self.ax such that it now has new x-limits
+        self.ax.set_xlim((0,spacing * number_of_elements))
+        self.l1.set_data(extended_x, np.real(new_x_arr))
+        self.l2.set_data(extended_x, np.imag(new_x_arr))
+        return [self.l1, self.l2]
+
     def initialize(self):
         self.l1.set_data([], [])
         self.l2.set_data([], [])
 
     def run_animation(self):
         self.anim = animation.FuncAnimation(self.fig, self.animate, init_func=self.initialize,
-                                            frames=self.n_frames, interval=int(1000/self.fps))
+                                            frames=self.n_frames, interval=self.animation_interval)
         plt.show()
+
+    def run_animation_with_propagation(self,velocity=1):
+        self.velocity = velocity
+        self.anim = animation.FuncAnimation(self.fig, self.animate_with_velocity, init_func=self.initialize,
+                                            frames=self.n_frames, interval=self.animation_interval)
+        plt.show()
+
+
 
     def create_gif(self):
         create_gif_input = input("Do you want to create a gif of the animation? (y/n)")
@@ -262,22 +286,22 @@ class AnimationClass:
 
 
 if __name__ == "__main__":
-    number_of_psi = 10  # This is the total number of nodes.
+    number_of_psi = 100  # This is the total number of nodes.
     # We are solving for number_of_psi-2 because of boundary conditions
     number_of_spatial_dimensions = 1
     mode = 1
     start_x = 0
     stop_x = 1
     hbar = sp.constants.h / (2*sp.pi)   # Reduced Planck constant = 1.055e-34 J s/rad
-    gif_animation_frames_per_second = 1000
+    animation_constant = 0.005 #This constant allows for there to be runtime_in_seconds / animation_constant number of frames output animation. Higher constant = faster animation.
     display_animation = True
     plot_stationary_solution = False
     gif_name = "test"
     time_start = 0
-    time_stop = 10
+    time_stop = 5
     delta_t = 1e-4
 
-    animation_timestep = int(time_stop / delta_t / gif_animation_frames_per_second)
+    animation_timestep = int(animation_constant / delta_t)
 
 
 
@@ -316,10 +340,10 @@ if __name__ == "__main__":
 
     # Display animation
     if display_animation:
-        ani = AnimationClass(fps=gif_animation_frames_per_second,
+        ani = AnimationClass(animation_interval=animation_timestep,
                              x=np.linspace(start_x, stop_x, number_of_psi),
-                             x_arr=x_arr, runtime_seconds=time_stop, delta_t=delta_t, playback_speed=1,
+                             x_arr=x_arr, runtime_seconds=time_stop, delta_t=delta_t,
                              gif_name=gif_name)
-        ani.run_animation()
+        ani.run_animation_with_propagation()
         ani.create_gif()
         ani.create_video()
