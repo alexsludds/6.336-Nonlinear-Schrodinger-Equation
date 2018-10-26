@@ -11,6 +11,8 @@ from progress.bar import Bar
 import os, sys, time
 from benchmark import benchmark
 
+#jamison learns how to use github
+#comment
 
 class Simulation:
     def __init__(self, x_start=0, x_stop=1, number_of_psi=100, number_of_spatial_dimensions=1,
