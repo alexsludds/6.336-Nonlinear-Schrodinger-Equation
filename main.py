@@ -2,14 +2,16 @@ import numpy as np
 import scipy as sp
 import scipy.constants
 import matplotlib
-# We are using the qt backend because tkiner backend does not allow for gif creation without an open window
-matplotlib.use("Qt4Agg")
+# We are using the qt backend because tkinter backend does not allow for gif creation without an open window
 import matplotlib.pyplot as plt
 from array2gif import write_gif
 import matplotlib.animation as animation
 from progress.bar import Bar
 import os, sys, time
 from benchmark import benchmark
+import problems
+matplotlib.use("Qt4Agg")
+
 
 class Simulation:
     def __init__(self, x_start=0, x_stop=1, number_of_psi=100, number_of_spatial_dimensions=1,
@@ -27,60 +29,6 @@ class Simulation:
         self.non_linear = non_linear
 
     """
-    Returns a copy of matrix describing relationships between Psi's
-    """
-    @benchmark
-    def generate_constituent_matrix(self):
-        # negative of 2nd derivative: on-diagonal terms = 2, off diagonal terms to -1
-        D = -1*np.diag(np.ones(self.number_of_psi-3), 1) - np.diag(np.ones(self.number_of_psi-3), -1)
-        np.fill_diagonal(D, 2)
-        D /= self.dx**2
-
-        if self.number_of_spatial_dimensions == 1:
-            self.constituent_matrix = D
-            return D
-
-        elif self.number_of_spatial_dimensions == 2:
-            # TODO: Clean this up and consider boundary conditions
-            # This basically just generates a block matrix of the 2D case.
-            # Best way to see this work is to swap all of the toblock.append(D) to something like toblock.append("D")
-            # then print Q at the end
-            D = -1*np.diag(np.ones(self.number_of_psi-1), 1) - 1* np.diag(np.ones(self.number_of_psi-1),-1)
-            np.fill_diagonal(D, 4)
-            I = np.eye(self.number_of_psi)
-            Z = np.zeros((self.number_of_psi, self.number_of_psi))
-            toblock = []
-            toblockarray = []
-            for row in range(self.number_of_psi):
-                toblock = []
-                for col in range(self.number_of_psi):
-                    if row == col:
-                        toblock.append(D)
-                    elif row == col-1:
-                        toblock.append(I)
-                    elif row == col+1:
-                        toblock.append(I)
-                    else:
-                        toblock.append(Z)
-                toblockarray.append(toblock)
-            Q = np.block(toblockarray)
-            self.constituent_matrix = Q
-            return Q
-
-        elif self.number_of_spatial_dimensions == 3:
-            pass
-
-    """
-    Given the values of x_start, x_stop, and the potential function that is defined
-    """
-    @benchmark
-    def generate_potential_matrix(self):
-        potential_values = np.array(list(map(self.potential_function, self.linspace)))
-        diagonal_matrix = np.diag(potential_values)
-        self.potential_matrix = diagonal_matrix
-        return diagonal_matrix
-
-    """
     Given the Hermitian matrix return the eigenvalues and eigenvectors
     """
     @benchmark
@@ -91,22 +39,14 @@ class Simulation:
         idx = eigenvalues.argsort()
         eigenvalues = eigenvalues[idx]
         eigenvectors = eigenvectors[:, idx]
-        eigenvectors = -1*eigenvectors.T  # possibly the most cursed thing in numpy
+        eigenvectors = eigenvectors.T  # possibly the most cursed thing in numpy
         return eigenvalues, eigenvectors
-
-    """
-    Calculates the Hamiltonian of the system, which is i*(constituent matrix + potential matrix)
-    """
-    @benchmark
-    def hamiltonian(self):
-        hamiltonian = 1j*(self.constituent_matrix + self.potential_matrix)
-        return hamiltonian
 
     """
     Performs the forward_euler method. We use this as a way of advancing time on the wave-form
     """
     @benchmark
-    #Forward euler is faster, but unstable
+    # Forward euler is faster, but unstable
     def forward_euler(self, f, u, x_start, p, t_start, t_stop, delta_t, animation_timestep):
         x = x_start
         t = t_start
@@ -129,7 +69,7 @@ class Simulation:
         return x, x_arr
 
     @benchmark
-    #Trapezoidal rule is slower, but stable
+    # Trapezoidal rule is slower, but stable
     def trapezoidal(self, f, u, x_start, p, t_start, t_stop, delta_t, animation_timestep):
         x = x_start
         t = t_start
@@ -161,35 +101,13 @@ class Simulation:
         plt.plot(self.linspace, eigenvector)
         plt.show()
 
-    #Don't benchmark this function, it is fast and gets called A LOT by forward euler
+    # Don't benchmark this function, it is fast and gets called A LOT by forward euler
     def dxdt_f(self, x, u, p):
         return p["A"].dot(x) + p["B"].dot(u)
 
     def dxdt_f_trapezoid(self,x,u_previous,u_current,p,delta_t,inverse):
         RHS = x + delta_t/2.*p['B'].dot(u_previous) + delta_t/2.*p['B'].dot(u_current) + delta_t/2.*p['A'].dot(x)
         return np.dot(inverse,RHS)
-
-    @benchmark
-    def nonlinear_matrix(self, x):
-        D = self.hamiltonian
-        D = D + np.diag(np.square(np.abs(x)))
-        return D
-
-    @benchmark
-    def calc_jacobian_numerical(self, f, x, u, p, epsilon):
-        """Return the Jacobian calculated using finite-difference
-        The Jacobian is size (n, 2n) where n is size of x because x is complex"""
-        jacobian = np.zeros((self.number_of_psi-2, 2*self.number_of_psi), dtype=complex)
-        f0 = f(x, u, p)
-        # print(f0)
-        for i in range(len(x)):
-            delta_x = np.zeros(self.number_of_psi-2)
-            delta_x[i] = epsilon
-            j_i_real = (f(x + delta_x, u, p) - f0)/epsilon
-            j_i_imag = (f(x + 1.0j*delta_x, u, p) - f0)/(epsilon*1.0j)
-            jacobian[:, 2*i] = j_i_real
-            jacobian[:, 2*i+1] = j_i_imag
-        return jacobian
 
 
 class AnimationClass:
@@ -255,8 +173,6 @@ class AnimationClass:
                                             frames=self.n_frames, interval=self.animation_interval)
         plt.show()
 
-
-
     def create_gif(self):
         create_gif_input = input("Do you want to create a gif of the animation? (y/n)")
         if create_gif_input == "n":
@@ -283,7 +199,6 @@ class AnimationClass:
         print("Video created with name: ", self.gif_name)
 
 
-
 if __name__ == "__main__":
     number_of_psi = 100  # This is the total number of nodes.
     # We are solving for number_of_psi-2 because of boundary conditions
@@ -292,7 +207,7 @@ if __name__ == "__main__":
     start_x = 0
     stop_x = 1
     hbar = sp.constants.h / (2*sp.pi)   # Reduced Planck constant = 1.055e-34 J s/rad
-    animation_constant = 0.005 #This constant allows for there to be runtime_in_seconds / animation_constant number of frames output animation. Higher constant = faster animation.
+    animation_constant = 0.005  # This constant allows for there to be runtime_in_seconds / animation_constant number of frames output animation. Higher constant = faster animation.
     display_animation = True
     plot_stationary_solution = False
     gif_name = "test"
@@ -302,17 +217,17 @@ if __name__ == "__main__":
 
     animation_timestep = int(animation_constant / delta_t)
 
-
-
     sim = Simulation(x_start=start_x, x_stop=stop_x, number_of_psi=number_of_psi,
                      number_of_spatial_dimensions=number_of_spatial_dimensions)
-    constituent_matrix = sim.generate_constituent_matrix()  # Kinetic term in quantum
-    potential_matrix = sim.generate_potential_matrix()
-    hamiltonian = sim.hamiltonian()     # A: sum of kinetic and potential terms
+
+    quantum = problems.Quantum(x_start=start_x, x_stop=stop_x, number_of_psi=number_of_psi,
+                               number_of_spatial_dimensions=number_of_spatial_dimensions)
+    hamiltonian = quantum.calc_hamiltonian()
 
     # plot the stationary solution
     if plot_stationary_solution:
-        eigenvalues, eigenvectors = sim.find_eigenvalues(hamiltonian)
+        eigenvalues, eigenvectors = sim.find_eigenvalues(hamiltonian/1j)
+        print(eigenvalues)
         sim.plot_stationary(eigenvectors[mode-1])
 
 
@@ -325,15 +240,12 @@ if __name__ == "__main__":
     p = {'A': hamiltonian,
          'B': np.zeros((number_of_psi - 2, number_of_psi - 2))}
 
-    # Testing Jacobian
-    jacobian = sim.calc_jacobian_numerical(sim.dxdt_f, init_state, u(0), p, 1e-3)
-    # print(jacobian)
-
     # x_final, x_arr = sim.forward_euler(sim.dxdt_f, u, init_state, p, t_start=time_start, t_stop=time_stop,
     #                                    delta_t=delta_t, animation_timestep = animation_timestep)
 
-    x_final, x_arr = sim.trapezoidal(sim.dxdt_f_trapezoid, u, init_state, p, t_start=time_start, t_stop = time_stop,
-                                       delta_t=delta_t, animation_timestep = animation_timestep)
+    x_final, x_arr = sim.trapezoidal(sim.dxdt_f_trapezoid, u, init_state, p, t_start=time_start, t_stop=time_stop,
+                                     delta_t=delta_t, animation_timestep=animation_timestep)
+    print("hi")
 
     # stationary_state = eigenvectors[mode-1]
 
