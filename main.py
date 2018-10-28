@@ -15,16 +15,14 @@ matplotlib.use("Qt4Agg")
 
 class Simulation:
     def __init__(self, x_start=0, x_stop=1, number_of_psi=100, number_of_spatial_dimensions=1,
-                 potential_function=lambda x: 0, non_linear=False, alpha=1e-12):
+                 non_linear=False):
         self.number_of_psi = number_of_psi
         self.number_of_spatial_dimensions = number_of_spatial_dimensions
         self.constituent_matrix = None
         self.potential_matrix = None
         self.x_start = x_start
         self.x_stop = x_stop
-        self.potential_function = potential_function    # Default is infinite square well
         self.linspace = np.linspace(self.x_start, self.x_stop, num=self.number_of_psi)[1:-1]
-        self.alpha = alpha
         self.dx = (self.x_stop - self.x_start)/(self.number_of_psi-1)
         self.non_linear = non_linear
 
@@ -61,7 +59,7 @@ class Simulation:
             if not self.non_linear:
                 norm = np.linalg.norm(x)
                 x = x/norm
-            #Save only usable frames
+            # Save only usable frames
             if n % animation_timestep == 0:
                 x_arr.append(x)
             bar.next()
@@ -85,11 +83,11 @@ class Simulation:
                 x = x + f(x, u(t-1),u(t),p,delta_t,inverse)
             t = t + delta_t
             n += 1
-            #normalize
+            # normalize
             if not self.non_linear:
                 norm = np.linalg.norm(x)
                 x = x/norm
-            #Save only usable frames
+            # Save only usable frames
             if n % animation_timestep == 0:
                 x_arr.append(x)
             bar.next()
@@ -222,7 +220,7 @@ if __name__ == "__main__":
 
     quantum = problems.Quantum(x_start=start_x, x_stop=stop_x, number_of_psi=number_of_psi,
                                number_of_spatial_dimensions=number_of_spatial_dimensions)
-    hamiltonian = quantum.calc_hamiltonian()
+    hamiltonian = quantum.calc_A()
 
     # plot the stationary solution
     if plot_stationary_solution:
@@ -230,22 +228,16 @@ if __name__ == "__main__":
         print(eigenvalues)
         sim.plot_stationary(eigenvectors[mode-1])
 
-
-    def u(_):
-        return np.zeros(number_of_psi - 2)
-
-
     # Initial state is one of the stationary states
     init_state = np.sqrt(2) * np.sin(mode * np.pi * np.linspace(start_x, stop_x, number_of_psi)[1:-1])
-    p = {'A': hamiltonian,
-         'B': np.zeros((number_of_psi - 2, number_of_psi - 2))}
+    u = quantum.get_u()
+    p = quantum.get_P()
 
     # x_final, x_arr = sim.forward_euler(sim.dxdt_f, u, init_state, p, t_start=time_start, t_stop=time_stop,
     #                                    delta_t=delta_t, animation_timestep = animation_timestep)
 
     x_final, x_arr = sim.trapezoidal(sim.dxdt_f_trapezoid, u, init_state, p, t_start=time_start, t_stop=time_stop,
                                      delta_t=delta_t, animation_timestep=animation_timestep)
-    print("hi")
 
     # stationary_state = eigenvectors[mode-1]
 

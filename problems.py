@@ -56,19 +56,25 @@ class Problem:
         self.constituent_matrix = D
         return D
 
-    def A_matrix(self):
+    def calc_A(self):
+        pass
+
+    def get_P(self):
+        pass
+
+    def get_u(self):
         pass
 
 
 class Quantum(Problem):
     def __init__(self, x_start=0, x_stop=1, number_of_psi=100, number_of_spatial_dimensions=1,
-                 potential_function=lambda x: 0, non_linear=False, mass=1):
+                 potential_function=lambda x: 0, non_linear=False, mass=9.109e-31):
         super().__init__(x_start=x_start, x_stop=x_stop, number_of_psi=number_of_psi,
                          number_of_spatial_dimensions=number_of_spatial_dimensions, non_linear=non_linear,)
         self.potential_matrix = self.generate_potential_matrix(potential_function)
         self.mass = mass
-        self.mass = hbar # temporary
-        self.H_matrix = self.calc_hamiltonian
+        self.time_multiplier = 1e5
+        self.A = self.calc_A()
 
     @benchmark
     def generate_potential_matrix(self, potential_function):
@@ -82,10 +88,20 @@ class Quantum(Problem):
     @benchmark
     def calc_hamiltonian(self):
         hamiltonian = -1j*(-hbar**2/(2*self.mass)*self.second_derivative() + self.potential_matrix)/hbar
-        return hamiltonian
+        return hamiltonian*self.time_multiplier
 
-    def A_matrix(self):
+    def calc_A(self):
         return self.calc_hamiltonian()
+
+    def get_P(self):
+        p = {'A': self.A,
+             'B': np.zeros((self.number_of_psi - 2, self.number_of_psi - 2))}
+        return p
+
+    def get_u(self):
+        def u(_):
+            return np.zeros(self.number_of_psi - 2)
+        return u
 
 
 class NLSE(Problem):
@@ -96,7 +112,7 @@ class NLSE(Problem):
                          number_of_spatial_dimensions=number_of_spatial_dimensions, non_linear=non_linear, )
         self.alpha = alpha
 
-    def A_matrix(self, x=None):
+    def calc_A(self, x=None):
         if x is None:
             return self.alpha*self.second_derivative()/1j
         else:
@@ -130,9 +146,9 @@ class NLSE(Problem):
 
 if __name__ == "__main__":
     problem = Problem(x_start=0, x_stop=1, number_of_psi=10, number_of_spatial_dimensions=1,
-                      non_linear=False, alpha=1e-12)
+                      non_linear=False)
     print(problem.second_derivative())
 
     problem = Problem(x_start=0, x_stop=1, number_of_psi=10, number_of_spatial_dimensions=2,
-                      non_linear=False, alpha=1e-12)
+                      non_linear=False)
     print(problem.second_derivative())
