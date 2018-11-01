@@ -1,5 +1,7 @@
 import numpy as np
 import scipy as sp
+import scipy.signal as signal
+from scipy.misc import imread
 import scipy.constants
 import matplotlib
 # We are using the qt backend because tkinter backend does not allow for gif creation without an open window
@@ -143,7 +145,6 @@ class AnimationClass:
         #We want to get the self.x_arr data and create a version which shifts over time by velocity at each timestep
         #First to do this we must get self.x and extend it. We know that the spacing in self.x is linear so we can find the spacing by doing (last-first)/num_samples
         spacing = (self.x[-1]-self.x[0])/self.x.shape[0]
-
         #We update this by using an array of size   self.x.shape[0] + number_of_time_steps*velocity
         number_of_elements = self.x.shape[0] + len(self.x_arr)*self.velocity
         extended_x = np.linspace(start=self.x[0],stop=self.x[0] + spacing * number_of_elements ,num= number_of_elements)
@@ -169,6 +170,10 @@ class AnimationClass:
         self.velocity = velocity
         self.anim = animation.FuncAnimation(self.fig, self.animate_with_velocity, init_func=self.initialize,
                                             frames=self.n_frames, interval=self.animation_interval)
+        spacing = (self.x[-1]-self.x[0])/self.x.shape[0]
+        number_of_elements = self.x.shape[0] + len(self.x_arr)*self.velocity
+        right_side_boundary = self.x[0] + spacing* number_of_elements
+        plt.imshow(imread("fiber_optic.png"), zorder=0, extent=[0,right_side_boundary,-1,1])
         plt.show()
 
     def create_gif(self):
@@ -208,9 +213,10 @@ if __name__ == "__main__":
     animation_constant = 0.005  # This constant allows for there to be runtime_in_seconds / animation_constant number of frames output animation. Higher constant = faster animation.
     display_animation = True
     plot_stationary_solution = False
+    periodic_boundary_conditions = True
     gif_name = "test"
     time_start = 0
-    time_stop = 5
+    time_stop = 1
     delta_t = 1e-4
 
     animation_timestep = int(animation_constant / delta_t)
@@ -219,7 +225,7 @@ if __name__ == "__main__":
                      number_of_spatial_dimensions=number_of_spatial_dimensions)
 
     quantum = problems.Quantum(x_start=start_x, x_stop=stop_x, number_of_psi=number_of_psi,
-                               number_of_spatial_dimensions=number_of_spatial_dimensions)
+                               number_of_spatial_dimensions=number_of_spatial_dimensions,periodic = periodic_boundary_conditions)
     hamiltonian = quantum.calc_A()
 
     # plot the stationary solution
@@ -230,6 +236,10 @@ if __name__ == "__main__":
 
     # Initial state is one of the stationary states
     init_state = np.sqrt(2) * np.sin(mode * np.pi * np.linspace(start_x, stop_x, number_of_psi)[1:-1])
+
+    #If we want to put something else inside of the line and see how it evolves we can do it here
+    init_state = signal.gaussian(number_of_psi-2,std=5.55)
+
     u = quantum.get_u()
     p = quantum.get_P()
 
