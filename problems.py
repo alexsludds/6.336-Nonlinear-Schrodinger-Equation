@@ -106,7 +106,7 @@ class Quantum(Problem):
 
 class NLSE(Problem):
     """Nonlinear Schrodinger equation for nonlinear fiber optics"""
-    def __init__(self, x_start=0, x_stop=1, number_of_psi=100, number_of_spatial_dimensions=1,
+    def __init__(self, x_start=-10, x_stop=10, number_of_psi=100, number_of_spatial_dimensions=1,
                  non_linear=False, alpha=1e-12):
         super().__init__(x_start=x_start, x_stop=x_stop, number_of_psi=number_of_psi,
                          number_of_spatial_dimensions=number_of_spatial_dimensions, non_linear=non_linear, )
