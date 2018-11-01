@@ -8,7 +8,7 @@ hbar = sp.constants.h / (2*sp.pi)   # Reduced Planck constant = 1.055e-34 J s/ra
 
 class Problem:
     def __init__(self, x_start=0, x_stop=1, number_of_psi=100, number_of_spatial_dimensions=1,
-                 non_linear=False):
+                 non_linear=False,periodic=False):
         self.number_of_psi = number_of_psi
         self.number_of_spatial_dimensions = number_of_spatial_dimensions
         self.constituent_matrix = None
@@ -18,6 +18,7 @@ class Problem:
         self.linspace = np.linspace(self.x_start, self.x_stop, num=self.number_of_psi)[1:-1]
         self.dx = (self.x_stop - self.x_start)/(self.number_of_psi-1)
         self.non_linear = non_linear
+        self.periodic = periodic
 
     @benchmark
     def second_derivative(self):
@@ -26,7 +27,14 @@ class Problem:
         if self.number_of_spatial_dimensions == 1:
             D = np.diag(np.ones(self.number_of_psi - 3), 1) + np.diag(np.ones(self.number_of_psi - 3), -1)
             np.fill_diagonal(D, -2)
+
+            #Check if we want periodic boundary conditions
+            if self.periodic == True:
+                D[-1,0] = 1 #Top right
+                D[0,-1] = 1 #Bottom left
+
             D /= self.dx ** 2
+
         elif self.number_of_spatial_dimensions == 2:
             # TODO: Clean this up and consider boundary conditions
             # This basically just generates a block matrix of the 2D case.
@@ -68,9 +76,9 @@ class Problem:
 
 class Quantum(Problem):
     def __init__(self, x_start=0, x_stop=1, number_of_psi=100, number_of_spatial_dimensions=1,
-                 potential_function=lambda x: 0, non_linear=False, mass=9.109e-31):
+                 potential_function=lambda x: 0, non_linear=False, mass=9.109e-31, periodic=False ):
         super().__init__(x_start=x_start, x_stop=x_stop, number_of_psi=number_of_psi,
-                         number_of_spatial_dimensions=number_of_spatial_dimensions, non_linear=non_linear,)
+                         number_of_spatial_dimensions=number_of_spatial_dimensions, non_linear=non_linear,periodic = periodic,)
         self.potential_matrix = self.generate_potential_matrix(potential_function)
         self.mass = mass
         self.time_multiplier = 1e5
@@ -102,7 +110,6 @@ class Quantum(Problem):
         def u(_):
             return np.zeros(self.number_of_psi - 2)
         return u
-
 
 class NLSE(Problem):
     """Nonlinear Schrodinger equation for nonlinear fiber optics"""
