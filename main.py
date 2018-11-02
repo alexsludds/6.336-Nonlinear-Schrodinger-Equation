@@ -17,7 +17,7 @@ matplotlib.use("Qt4Agg")
 
 class Simulation:
     def __init__(self, x_start=0, x_stop=1, number_of_psi=100, number_of_spatial_dimensions=1,
-                 non_linear=False):
+                 nonlinear=False):
         self.number_of_psi = number_of_psi
         self.number_of_spatial_dimensions = number_of_spatial_dimensions
         self.constituent_matrix = None
@@ -26,7 +26,7 @@ class Simulation:
         self.x_stop = x_stop
         self.linspace = np.linspace(self.x_start, self.x_stop, num=self.number_of_psi)[1:-1]
         self.dx = (self.x_stop - self.x_start)/(self.number_of_psi-1)
-        self.non_linear = non_linear
+        self.nonlinear = nonlinear
 
     """
     Given the Hermitian matrix return the eigenvalues and eigenvectors
@@ -53,12 +53,20 @@ class Simulation:
         n = 0
         x_arr = []
         bar = Bar('Processing', max=int((t_stop-t_start)/delta_t))
+        # t_stop = 2*delta_t
+        # plt.figure()
+        # plt.plot(np.real(x))
+        # plt.plot(np.imag(x))
         while t < t_stop:
             x = x + delta_t * f(x, u(t), p)
             n += 1
             t = t + delta_t
-            # normalize
-            if not self.non_linear:
+            # plt.figure()
+            # plt.plot(np.real(x))
+            # plt.plot(np.imag(x))
+            # plt.show()
+            # normalize the wave function for the quantum problem
+            if not self.nonlinear:
                 norm = np.linalg.norm(x)
                 x = x/norm
             # Save only usable frames
@@ -75,9 +83,10 @@ class Simulation:
         t = t_start
         x_arr = []
         n = 0
-        #TODO This is the slow version of the trapezoidal rule, we should get around to implementing the iterative version at some point
+        # TODO This is the slow version of the trapezoidal rule, we should get around to implementing the iterative
+        # version at some point
         inverse = np.linalg.inv(np.eye(x.shape[0],x.shape[0])-delta_t/2. * p['A'])
-        bar = Bar("Processing",max=int((t_stop-t_start)/delta_t), suffix = '%(percent).1f%% - %(eta)ds')
+        bar = Bar("Processing", max=int((t_stop-t_start)/delta_t), suffix='%(percent).1f%% - %(eta)ds')
         while t < t_stop:
             if t == 0:
                 x = f(x,u(0),u(0),p,delta_t,inverse)
@@ -86,7 +95,7 @@ class Simulation:
             t = t + delta_t
             n += 1
             # normalize
-            if not self.non_linear:
+            if not self.nonlinear:
                 norm = np.linalg.norm(x)
                 x = x/norm
             # Save only usable frames
@@ -103,7 +112,10 @@ class Simulation:
 
     # Don't benchmark this function, it is fast and gets called A LOT by forward euler
     def dxdt_f(self, x, u, p):
-        return p["A"].dot(x) + p["B"].dot(u)
+        if not self.nonlinear:
+            return p["A"].dot(x) + p["B"].dot(u)
+        else:
+            return p["A"](x).dot(x) + p["B"].dot(u)
 
     def dxdt_f_trapezoid(self,x,u_previous,u_current,p,delta_t,inverse):
         RHS = x + delta_t/2.*p['B'].dot(u_previous) + delta_t/2.*p['B'].dot(u_current) + delta_t/2.*p['A'].dot(x)
@@ -142,8 +154,9 @@ class AnimationClass:
         return [self.l1, self.l2]
 
     def animate_with_velocity(self,i):
-        #We want to get the self.x_arr data and create a version which shifts over time by velocity at each timestep
-        #First to do this we must get self.x and extend it. We know that the spacing in self.x is linear so we can find the spacing by doing (last-first)/num_samples
+        # We want to get the self.x_arr data and create a version which shifts over time by velocity at each timestep
+        # First to do this we must get self.x and extend it. We know that the spacing in self.x is linear so we can find
+        # the spacing by doing (last-first)/num_samples
         spacing = (self.x[-1]-self.x[0])/self.x.shape[0]
         #We update this by using an array of size   self.x.shape[0] + number_of_time_steps*velocity
         number_of_elements = self.x.shape[0] + len(self.x_arr)*self.velocity
@@ -207,49 +220,57 @@ if __name__ == "__main__":
     # We are solving for number_of_psi-2 because of boundary conditions
     number_of_spatial_dimensions = 1
     mode = 1
-    start_x = 0
-    stop_x = 1
+    start_x = -5
+    stop_x = 5
     hbar = sp.constants.h / (2*sp.pi)   # Reduced Planck constant = 1.055e-34 J s/rad
-    animation_constant = 0.005  # This constant allows for there to be runtime_in_seconds / animation_constant number of frames output animation. Higher constant = faster animation.
+    # This constant allows for there to be runtime_in_seconds / animation_constant number of frames output animation.
+    # Higher constant = faster animation.
+    animation_constant = 0.005
+    animation_constant = 0.05
     display_animation = True
     plot_stationary_solution = False
     periodic_boundary_conditions = True
     gif_name = "test"
     time_start = 0
-    time_stop = 1
-    delta_t = 1e-4
+    time_stop = 10
+    delta_t = 1e-5
 
     animation_timestep = int(animation_constant / delta_t)
 
     sim = Simulation(x_start=start_x, x_stop=stop_x, number_of_psi=number_of_psi,
-                     number_of_spatial_dimensions=number_of_spatial_dimensions)
+                     number_of_spatial_dimensions=number_of_spatial_dimensions, nonlinear=True)
 
-    quantum = problems.Quantum(x_start=start_x, x_stop=stop_x, number_of_psi=number_of_psi,
-                               number_of_spatial_dimensions=number_of_spatial_dimensions,periodic = periodic_boundary_conditions)
-    hamiltonian = quantum.calc_A()
+    # quantum = problems.Quantum(x_start=start_x, x_stop=stop_x, number_of_psi=number_of_psi,
+    #                            number_of_spatial_dimensions=number_of_spatial_dimensions,
+    #                            periodic=periodic_boundary_conditions)
+    # hamiltonian = quantum.calc_A()
+    #
+    # # plot the stationary solution
+    # if plot_stationary_solution:
+    #     eigenvalues, eigenvectors = sim.find_eigenvalues(hamiltonian/1j)
+    #     print(eigenvalues)
+    #     sim.plot_stationary(eigenvectors[mode-1])
+    #
+    # # Initial state is one of the stationary states
+    # init_state = quantum.get_stationary_state(mode)
+    # # If we want to put something else inside of the line and see how it evolves we can do it here
+    # init_state = signal.gaussian(number_of_psi - 2, std=1)
 
-    # plot the stationary solution
-    if plot_stationary_solution:
-        eigenvalues, eigenvectors = sim.find_eigenvalues(hamiltonian/1j)
-        print(eigenvalues)
-        sim.plot_stationary(eigenvectors[mode-1])
+    NLSE = problems.NLSE(x_start=start_x, x_stop=stop_x, number_of_psi=number_of_psi)
 
-    # Initial state is one of the stationary states
-    init_state = np.sqrt(2) * np.sin(mode * np.pi * np.linspace(start_x, stop_x, number_of_psi)[1:-1])
+    init_state = NLSE.get_stationary_state()
+    # plt.figure()
+    # plt.plot(init_state)
+    # plt.show()
 
-    #If we want to put something else inside of the line and see how it evolves we can do it here
-    init_state = signal.gaussian(number_of_psi-2,std=5.55)
+    u = NLSE.get_u()
+    p = NLSE.get_P()
 
-    u = quantum.get_u()
-    p = quantum.get_P()
+    x_final, x_arr = sim.forward_euler(sim.dxdt_f, u, init_state, p, t_start=time_start, t_stop=time_stop,
+                                       delta_t=delta_t, animation_timestep=animation_timestep)
 
-    # x_final, x_arr = sim.forward_euler(sim.dxdt_f, u, init_state, p, t_start=time_start, t_stop=time_stop,
-    #                                    delta_t=delta_t, animation_timestep = animation_timestep)
-
-    x_final, x_arr = sim.trapezoidal(sim.dxdt_f_trapezoid, u, init_state, p, t_start=time_start, t_stop=time_stop,
-                                     delta_t=delta_t, animation_timestep=animation_timestep)
-
-    # stationary_state = eigenvectors[mode-1]
+    # x_final, x_arr = sim.trapezoidal(sim.dxdt_f_trapezoid, u, init_state, p, t_start=time_start, t_stop=time_stop,
+    #                                  delta_t=delta_t, animation_timestep=animation_timestep)
 
     # Display animation
     if display_animation:

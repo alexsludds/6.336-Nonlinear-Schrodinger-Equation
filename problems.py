@@ -8,7 +8,7 @@ hbar = sp.constants.h / (2*sp.pi)   # Reduced Planck constant = 1.055e-34 J s/ra
 
 class Problem:
     def __init__(self, x_start=0, x_stop=1, number_of_psi=100, number_of_spatial_dimensions=1,
-                 non_linear=False,periodic=False):
+                 periodic=False):
         self.number_of_psi = number_of_psi
         self.number_of_spatial_dimensions = number_of_spatial_dimensions
         self.constituent_matrix = None
@@ -17,7 +17,6 @@ class Problem:
         self.x_stop = x_stop
         self.linspace = np.linspace(self.x_start, self.x_stop, num=self.number_of_psi)[1:-1]
         self.dx = (self.x_stop - self.x_start)/(self.number_of_psi-1)
-        self.non_linear = non_linear
         self.periodic = periodic
 
     @benchmark
@@ -28,10 +27,10 @@ class Problem:
             D = np.diag(np.ones(self.number_of_psi - 3), 1) + np.diag(np.ones(self.number_of_psi - 3), -1)
             np.fill_diagonal(D, -2)
 
-            #Check if we want periodic boundary conditions
-            if self.periodic == True:
-                D[-1,0] = 1 #Top right
-                D[0,-1] = 1 #Bottom left
+            # Check if we want periodic boundary conditions
+            if self.periodic:
+                D[-1, 0] = 1 # Top right
+                D[0, -1] = 1 # Bottom left
 
             D /= self.dx ** 2
 
@@ -71,17 +70,20 @@ class Problem:
         pass
 
     def get_u(self):
-        pass
+        def u(_):
+            return np.zeros(self.number_of_psi - 2)
+        return u
 
 
 class Quantum(Problem):
     def __init__(self, x_start=0, x_stop=1, number_of_psi=100, number_of_spatial_dimensions=1,
-                 potential_function=lambda x: 0, non_linear=False, mass=9.109e-31, periodic=False ):
+                 potential_function=lambda x: 0, mass=9.109e-31, periodic=False):
         super().__init__(x_start=x_start, x_stop=x_stop, number_of_psi=number_of_psi,
-                         number_of_spatial_dimensions=number_of_spatial_dimensions, non_linear=non_linear,periodic = periodic,)
+                         number_of_spatial_dimensions=number_of_spatial_dimensions,
+                         periodic=periodic,)
         self.potential_matrix = self.generate_potential_matrix(potential_function)
         self.mass = mass
-        self.time_multiplier = 1e5
+        self.time_multiplier = 1e3
         self.A = self.calc_A()
 
     @benchmark
@@ -106,26 +108,29 @@ class Quantum(Problem):
              'B': np.zeros((self.number_of_psi - 2, self.number_of_psi - 2))}
         return p
 
-    def get_u(self):
-        def u(_):
-            return np.zeros(self.number_of_psi - 2)
-        return u
+    def get_stationary_state(self, mode):
+        """Stationary state solutions for infinite square well potential"""
+        a = self.x_stop - self.x_start
+        return np.sqrt(2/a) * np.sin(mode * np.pi * np.linspace(self.x_start, self.x_stop, self.number_of_psi)[1:-1])
+
 
 class NLSE(Problem):
     """Nonlinear Schrodinger equation for nonlinear fiber optics"""
     def __init__(self, x_start=-10, x_stop=10, number_of_psi=100, number_of_spatial_dimensions=1,
-                 non_linear=False, alpha=1e-12):
+                 beta=2, gamma=-2):
         super().__init__(x_start=x_start, x_stop=x_stop, number_of_psi=number_of_psi,
-                         number_of_spatial_dimensions=number_of_spatial_dimensions, non_linear=non_linear, )
-        self.alpha = alpha
+                         number_of_spatial_dimensions=number_of_spatial_dimensions)
+        self.gamma = gamma
+        self.beta = beta
+        self.second_derivative_mat = self.second_derivative()
+        self.time_multiplier = 1e0
 
     def calc_A(self, x=None):
         if x is None:
-            return self.alpha*self.second_derivative()/1j
+            return self.beta/2*self.second_derivative_mat/1j*self.time_multiplier
         else:
-            return (self.alpha*self.second_derivative() + self.nonlinear_matrix(x)) / 1j
+            return (self.beta/2*self.second_derivative_mat - self.gamma*self.nonlinear_matrix(x)) / 1j*self.time_multiplier
 
-    @benchmark
     def nonlinear_matrix(self, x):
         return np.diag(np.square(np.abs(x)))
 
@@ -145,10 +150,24 @@ class NLSE(Problem):
             jacobian[:, 2*i+1] = j_i_imag
         return jacobian
 
+    def get_P(self):
+        p = {'A': self.calc_A,
+             'B': np.zeros((self.number_of_psi - 2, self.number_of_psi - 2))}
+        return p
+
     @benchmark
     def stationary_matrix(self, omega):
-        right = (self.constituent_matrix + self.potential_matrix)
+        right = (self.beta/2*self.constituent_matrix + self.potential_matrix)
         right += omega*np.identity(self.number_of_psi-2)
+
+    def soliton(self, t):
+        # theta = 0.5*-self.gamma*A0**2 * z
+        tau = 1
+        A0 = np.sqrt(-self.beta/self.gamma)
+        return A0 / np.cosh(t/tau)
+
+    def get_stationary_state(self):
+        return self.soliton(self.linspace)
 
 
 if __name__ == "__main__":
