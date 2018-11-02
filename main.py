@@ -5,6 +5,7 @@ from scipy.misc import imread
 import scipy.constants
 import matplotlib
 # We are using the qt backend because tkinter backend does not allow for gif creation without an open window
+# matplotlib.use("Qt4Agg")
 import matplotlib.pyplot as plt
 from array2gif import write_gif
 import matplotlib.animation as animation
@@ -12,7 +13,7 @@ from progress.bar import Bar
 import os, sys, time
 from benchmark import benchmark
 import problems
-matplotlib.use("Qt4Agg")
+
 
 
 class Simulation:
@@ -220,8 +221,8 @@ if __name__ == "__main__":
     # We are solving for number_of_psi-2 because of boundary conditions
     number_of_spatial_dimensions = 1
     mode = 1
-    start_x = -5
-    stop_x = 5
+    start_x = -10
+    stop_x = 10
     hbar = sp.constants.h / (2*sp.pi)   # Reduced Planck constant = 1.055e-34 J s/rad
     # This constant allows for there to be runtime_in_seconds / animation_constant number of frames output animation.
     # Higher constant = faster animation.

@@ -122,6 +122,9 @@ class NLSE(Problem):
                          number_of_spatial_dimensions=number_of_spatial_dimensions)
         self.gamma = gamma
         self.beta = beta
+        # Reparameterization for different notation
+        self.d = -self.beta/2
+        self.delta = -self.gamma
         self.second_derivative_mat = self.second_derivative()
         self.time_multiplier = 1e0
 
@@ -171,10 +174,11 @@ class NLSE(Problem):
 
 
 if __name__ == "__main__":
-    problem = Problem(x_start=0, x_stop=1, number_of_psi=10, number_of_spatial_dimensions=1,
-                      non_linear=False)
-    print(problem.second_derivative())
-
-    problem = Problem(x_start=0, x_stop=1, number_of_psi=10, number_of_spatial_dimensions=2,
-                      non_linear=False)
-    print(problem.second_derivative())
+    # problem = Problem(x_start=0, x_stop=1, number_of_psi=10, number_of_spatial_dimensions=1,
+    #                   non_linear=False)
+    # print(problem.second_derivative())
+    #
+    # problem = Problem(x_start=0, x_stop=1, number_of_psi=10, number_of_spatial_dimensions=2,
+    #                   non_linear=False)
+    # print(problem.second_derivative())
+    pass
