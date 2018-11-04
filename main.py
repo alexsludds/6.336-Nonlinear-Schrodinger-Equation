@@ -5,7 +5,7 @@ from scipy.misc import imread
 import scipy.constants
 import matplotlib
 # We are using the qt backend because tkinter backend does not allow for gif creation without an open window
-# matplotlib.use("Qt4Agg")
+matplotlib.use("Qt4Agg")
 import matplotlib.pyplot as plt
 # from array2gif import write_gif
 import matplotlib.animation as animation
@@ -34,7 +34,6 @@ class Simulation:
     @benchmark
     def find_eigenvalues(self, H_matrix):
         eigenvalues, eigenvectors = np.linalg.eig(H_matrix)
-        # eigenvectors = eigenvectors.T #possibly the more cursed thing numpy ever implemented
         # sort eigenvectors and eigenvalues
         idx = eigenvalues.argsort()
         eigenvalues = eigenvalues[idx]

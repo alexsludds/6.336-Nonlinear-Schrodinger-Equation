@@ -165,6 +165,22 @@ class NLSE(Problem):
             jacobian[:, 2*i+1] = j_i_imag
         return jacobian
 
+    def calc_jacobian_analytical(self):
+        """Return the Jacobian calculated using analytical expression
+        The Jacobian is size (n, 2n) where n is size of x because x is complex"""
+        jacobian = np.zeros((self.number_of_psi-2, 2*self.number_of_psi), dtype=complex)
+        D = self.second_derivative()
+        print(D.shape)
+        # print(f0)
+        for i in range(jacobian.shape[0]):
+            column = D[:,i]
+            print(column.shape)
+            jacobian[:, 2*i] = column
+            jacobian[:, 2*i+1] = column
+        #TODO finish this up to include the nonlinearity
+        print(jacobian)
+        return jacobian
+
     def get_P(self):
         p = {'A': self.calc_A,
              'B': np.zeros((self.number_of_psi - 2, self.number_of_psi - 2))}
