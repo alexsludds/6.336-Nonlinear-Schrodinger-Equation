@@ -7,13 +7,12 @@ import matplotlib
 # We are using the qt backend because tkinter backend does not allow for gif creation without an open window
 # matplotlib.use("Qt4Agg")
 import matplotlib.pyplot as plt
-from array2gif import write_gif
+# from array2gif import write_gif
 import matplotlib.animation as animation
 from progress.bar import Bar
 import os, sys, time
 from benchmark import benchmark
 import problems
-
 
 
 class Simulation:
@@ -90,9 +89,9 @@ class Simulation:
         bar = Bar("Processing", max=int((t_stop-t_start)/delta_t), suffix='%(percent).1f%% - %(eta)ds')
         while t < t_stop:
             if t == 0:
-                x = f(x,u(0),u(0),p,delta_t,inverse)
+                x = f(x, u(0), u(0), p, delta_t,inverse)
             else:
-                x = x + f(x, u(t-1),u(t),p,delta_t,inverse)
+                x = x + f(x, u(t-1), u(t), p, delta_t, inverse)
             t = t + delta_t
             n += 1
             # normalize
@@ -104,7 +103,7 @@ class Simulation:
                 x_arr.append(x)
             bar.next()
         bar.finish()
-        return x,x_arr
+        return x, x_arr
 
     @benchmark
     def plot_stationary(self, eigenvector):
@@ -123,8 +122,16 @@ class Simulation:
         return np.dot(inverse,RHS)
 
 
+def real_to_complex(z):  # real vector of length 2n -> complex of length n
+    return z[:len(z) // 2] + 1j * z[len(z) // 2:]
+
+
+def complex_to_real(z):  # complex vector of length n -> real of length 2n
+    return np.concatenate((np.real(z), np.imag(z)))
+
+
 class AnimationClass:
-    def __init__(self, animation_interval , x, x_arr, runtime_seconds=10, delta_t=0.005,
+    def __init__(self, animation_interval, x, x_arr, runtime_seconds=10, delta_t=0.005,
                  gif_name="test.gif"):
         self.fig = plt.figure(figsize=(8, 6), dpi=200)
         self.ax = plt.axes(xlim=(0, 1), ylim=(-1, 1))
@@ -154,19 +161,19 @@ class AnimationClass:
         self.l2.set_data(self.x, np.imag(self.x_arr[i]))
         return [self.l1, self.l2]
 
-    def animate_with_velocity(self,i):
+    def animate_with_velocity(self, i):
         # We want to get the self.x_arr data and create a version which shifts over time by velocity at each timestep
         # First to do this we must get self.x and extend it. We know that the spacing in self.x is linear so we can find
         # the spacing by doing (last-first)/num_samples
         spacing = (self.x[-1]-self.x[0])/self.x.shape[0]
-        #We update this by using an array of size   self.x.shape[0] + number_of_time_steps*velocity
+        # We update this by using an array of size   self.x.shape[0] + number_of_time_steps*velocity
         number_of_elements = self.x.shape[0] + len(self.x_arr)*self.velocity
-        extended_x = np.linspace(start=self.x[0],stop=self.x[0] + spacing * number_of_elements ,num= number_of_elements)
-        #We want to get x_arr and append time_step * velocity  zeros to the beginning of each sample
-        new_x_arr = np.zeros(number_of_elements, dtype = np.complex128)
-        new_x_arr[i*self.velocity : i*self.velocity + len(self.x_arr[i])] = self.x_arr[i]
-        #We want to update self.ax such that it now has new x-limits
-        self.ax.set_xlim((0,spacing * number_of_elements))
+        extended_x = np.linspace(start=self.x[0], stop=self.x[0] + spacing * number_of_elements ,num= number_of_elements)
+        # We want to get x_arr and append time_step * velocity  zeros to the beginning of each sample
+        new_x_arr = np.zeros(number_of_elements, dtype=np.complex128)
+        new_x_arr[i*self.velocity: i*self.velocity + len(self.x_arr[i])] = self.x_arr[i]
+        # We want to update self.ax such that it now has new x-limits
+        self.ax.set_xlim((0, spacing * number_of_elements))
         self.l1.set_data(extended_x, np.real(new_x_arr))
         self.l2.set_data(extended_x, np.imag(new_x_arr))
         return [self.l1, self.l2]
@@ -180,14 +187,14 @@ class AnimationClass:
                                             frames=self.n_frames, interval=self.animation_interval)
         plt.show()
 
-    def run_animation_with_propagation(self,velocity=1):
+    def run_animation_with_propagation(self, velocity=1):
         self.velocity = velocity
         self.anim = animation.FuncAnimation(self.fig, self.animate_with_velocity, init_func=self.initialize,
                                             frames=self.n_frames, interval=self.animation_interval)
         spacing = (self.x[-1]-self.x[0])/self.x.shape[0]
         number_of_elements = self.x.shape[0] + len(self.x_arr)*self.velocity
-        right_side_boundary = self.x[0] + spacing* number_of_elements
-        plt.imshow(imread("fiber_optic.png"), zorder=0, extent=[0,right_side_boundary,-1,1])
+        right_side_boundary = self.x[0] + spacing * number_of_elements
+        plt.imshow(imread("fiber_optic.png"), zorder=0, extent=[0, right_side_boundary, -1, 1])
         plt.show()
 
     def create_gif(self):

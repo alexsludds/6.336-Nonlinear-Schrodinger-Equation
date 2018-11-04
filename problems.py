@@ -17,7 +17,7 @@ class Problem:
         self.x_stop = x_stop
         self.linspace = np.linspace(self.x_start, self.x_stop, num=self.number_of_psi)[1:-1]
         self.dx = (self.x_stop - self.x_start)/(self.number_of_psi-1)
-        self.periodic = periodic
+        self.periodic = periodic    # Default is 0 boundary conditions
 
     @benchmark
     def second_derivative(self):
@@ -29,8 +29,8 @@ class Problem:
 
             # Check if we want periodic boundary conditions
             if self.periodic:
-                D[-1, 0] = 1 # Top right
-                D[0, -1] = 1 # Bottom left
+                D[-1, 0] = 1  # Top right
+                D[0, -1] = 1  # Bottom left
 
             D /= self.dx ** 2
 
@@ -85,6 +85,7 @@ class Quantum(Problem):
         self.mass = mass
         self.time_multiplier = 1e3
         self.A = self.calc_A()
+        self.second_derivative_mat = self.second_derivative()
 
     @benchmark
     def generate_potential_matrix(self, potential_function):
@@ -113,13 +114,23 @@ class Quantum(Problem):
         a = self.x_stop - self.x_start
         return np.sqrt(2/a) * np.sin(mode * np.pi * np.linspace(self.x_start, self.x_stop, self.number_of_psi)[1:-1])
 
+    def calc_F_stationary(self, x):
+        #TODO: Unfinished
+        omega = 1
+        return self.second_derivative_mat.dot(x) + omega*x
+
+    def calc_F_stationary_Jacobian(self, x=None, theta=1):
+        # TODO: Unfinished
+        return (self.second_derivative_mat - np.diag(3*x**2) +
+                theta*np.eye(self.number_of_psi-2))
+
 
 class NLSE(Problem):
     """Nonlinear Schrodinger equation for nonlinear fiber optics"""
     def __init__(self, x_start=-10, x_stop=10, number_of_psi=100, number_of_spatial_dimensions=1,
-                 beta=2, gamma=-2):
+                 beta=2, gamma=-2, periodic=False):
         super().__init__(x_start=x_start, x_stop=x_stop, number_of_psi=number_of_psi,
-                         number_of_spatial_dimensions=number_of_spatial_dimensions)
+                         number_of_spatial_dimensions=number_of_spatial_dimensions, periodic=periodic)
         self.gamma = gamma
         self.beta = beta
         # Reparameterization for different notation
@@ -130,6 +141,7 @@ class NLSE(Problem):
 
     def calc_A(self, x=None):
         if x is None:
+            print("Warning: using linear Schrodinger equation")
             return self.beta/2*self.second_derivative_mat/1j*self.time_multiplier
         else:
             return (self.beta/2*self.second_derivative_mat - self.gamma*self.nonlinear_matrix(x)) / 1j*self.time_multiplier
@@ -157,6 +169,17 @@ class NLSE(Problem):
         p = {'A': self.calc_A,
              'B': np.zeros((self.number_of_psi - 2, self.number_of_psi - 2))}
         return p
+
+    def calc_F_stationary(self, x, theta=-1):
+        if x is None:
+            print("Warning: using linear Schrodinger equation")
+            return self.beta/2*self.second_derivative_mat.dot(x) + theta*x
+        else:
+            return self.beta/2*self.second_derivative_mat.dot(x) - self.gamma*x**3 + theta*x
+
+    def calc_F_stationary_Jacobian(self, x, theta=-1):
+        return (self.beta/2*self.second_derivative_mat - np.diag(3*self.gamma*x**2) +
+                theta*np.eye(self.number_of_psi-2))
 
     @benchmark
     def stationary_matrix(self, omega):
