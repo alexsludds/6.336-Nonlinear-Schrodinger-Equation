@@ -5,7 +5,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import problems
 from main import Simulation
-from scipy.optimize import newton
+# from scipy.optimize import newton
 from scipy import optimize
 
 
@@ -24,10 +24,24 @@ def shooting_function(x):
     return xf - x
 
 
-def find_stationary_state(problem):
-    xf = optimize.root(problem.calc_F_stationary, problem.soliton(problem.linspace),
-                jac=problem.calc_F_stationary_Jacobian)
+def find_stationary_state(problem, x0):
+    xf = optimize.root(problem.calc_F_stationary, x0=x0, jac=problem.calc_F_stationary_Jacobian)
     return xf
+
+
+def newton(fun, x0, jac):
+    tol = 1e-4
+    max_iter = 500
+    for i in range(max_iter):
+        f_i = fun(x0)
+        j_i = jac(x0)
+        dx = -np.linalg.solve(j_i, f_i)
+        x0 = x0 + dx
+
+        if np.amax(np.abs(f_i)) < tol and np.amax(np.abs(dx)) < tol:
+            print("Converged in %d iterations" % i)
+            break
+    return x0
 
 
 if __name__ == "__main__":
@@ -68,6 +82,7 @@ if __name__ == "__main__":
     NLSE = problems.NLSE(x_start=start_x, x_stop=stop_x, number_of_psi=number_of_psi, periodic=True)
 
     init_state = NLSE.get_stationary_state()
+    init_state = 0.7*np.exp(-NLSE.linspace**2/2)
     # plt.figure()
     # plt.plot(init_state)
     # plt.show()
@@ -79,15 +94,20 @@ if __name__ == "__main__":
     # print(init_state)
     # print(NLSE.calc_A(x=init_state))
 
-    xf = find_stationary_state(NLSE)
+    xf = find_stationary_state(NLSE, x0=init_state)
     xf = xf.x
     # np.savetxt('xf', xf.x)
 
     # xf = np.loadtxt('xf')
 
+    xf2 = newton(NLSE.calc_F_stationary, x0=init_state, jac=NLSE.calc_F_stationary_Jacobian)
+
     plt.figure()
-    plt.plot(xf, label='Root')
-    plt.plot(NLSE.soliton(NLSE.linspace), label='Analytical')
+    plt.plot(NLSE.linspace, init_state, label='Init guess')
+    plt.plot(NLSE.linspace, NLSE.soliton(NLSE.linspace), label='Analytical')
+    plt.plot(NLSE.linspace, xf, linestyle=':', label='Scipy root', markersize=20, linewidth=2)
+    plt.plot(NLSE.linspace, xf2, linestyle='-.', label='Newton', markersize=20, linewidth=2)
+    plt.xlim(-10, 10)
     plt.legend()
     plt.show()
 
