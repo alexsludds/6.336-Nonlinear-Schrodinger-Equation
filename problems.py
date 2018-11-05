@@ -115,7 +115,7 @@ class Quantum(Problem):
         return np.sqrt(2/a) * np.sin(mode * np.pi * np.linspace(self.x_start, self.x_stop, self.number_of_psi)[1:-1])
 
     def calc_F_stationary(self, x):
-        #TODO: Unfinished
+        # TODO: Unfinished
         omega = 1
         return self.second_derivative_mat.dot(x) + omega*x
 
@@ -186,15 +186,13 @@ class NLSE(Problem):
              'B': np.zeros((self.number_of_psi - 2, self.number_of_psi - 2))}
         return p
 
-    def calc_F_stationary(self, x, theta=-1):
-        if x is None:
-            print("Warning: using linear Schrodinger equation")
-            return self.beta/2*self.second_derivative_mat.dot(x) + theta*x
-        else:
-            return self.beta/2*self.second_derivative_mat.dot(x) - self.gamma*x**3 + theta*x
+    def calc_F_stationary(self, x, theta=1):
+        """Function where the root corresponds to a stationary state with eigenvalue theta"""
+        return self.beta/2*self.second_derivative_mat.dot(x) - self.gamma*x**3 - theta*x
 
-    def calc_F_stationary_Jacobian(self, x, theta=-1):
-        return (self.beta/2*self.second_derivative_mat - np.diag(3*self.gamma*x**2) +
+    def calc_F_stationary_Jacobian(self, x, theta=1):
+        """Jacobian of calc_F_stationary"""
+        return (self.beta/2*self.second_derivative_mat - np.diag(3*self.gamma*x**2) -
                 theta*np.eye(self.number_of_psi-2))
 
     @benchmark

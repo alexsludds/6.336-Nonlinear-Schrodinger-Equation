@@ -51,9 +51,6 @@ if __name__ == "__main__":
     mode = 1
     start_x = -100
     stop_x = 100
-    # This constant allows for there to be runtime_in_seconds / animation_constant number of frames output animation.
-    # Higher constant = faster animation.
-    plot_stationary_solution = False
     periodic_boundary_conditions = True
     gif_name = "test"
     time_start = 0
@@ -63,39 +60,13 @@ if __name__ == "__main__":
     sim = Simulation(x_start=start_x, x_stop=stop_x, number_of_psi=number_of_psi,
                      number_of_spatial_dimensions=number_of_spatial_dimensions, nonlinear=True)
 
-    # quantum = problems.Quantum(x_start=start_x, x_stop=stop_x, number_of_psi=number_of_psi,
-    #                            number_of_spatial_dimensions=number_of_spatial_dimensions,
-    #                            periodic=periodic_boundary_conditions)
-    # hamiltonian = quantum.calc_A()
-    #
-    # # plot the stationary solution
-    # if plot_stationary_solution:
-    #     eigenvalues, eigenvectors = sim.find_eigenvalues(hamiltonian/1j)
-    #     print(eigenvalues)
-    #     sim.plot_stationary(eigenvectors[mode-1])
-    #
-    # # Initial state is one of the stationary states
-    # init_state = quantum.get_stationary_state(mode)
-    # # If we want to put something else inside of the line and see how it evolves we can do it here
-    # init_state = signal.gaussian(number_of_psi - 2, std=1)
-
     NLSE = problems.NLSE(x_start=start_x, x_stop=stop_x, number_of_psi=number_of_psi, periodic=True)
 
     init_state = NLSE.get_stationary_state()
     init_state = 0.7*np.exp(-NLSE.linspace**2/2)
-    # plt.figure()
-    # plt.plot(init_state)
-    # plt.show()
 
-    u = NLSE.get_u()
-    p = NLSE.get_P()
-
-    # print(NLSE.calc_F_stationary(x=init_state, theta=1))
-    # print(init_state)
-    # print(NLSE.calc_A(x=init_state))
-
-    xf = find_stationary_state(NLSE, x0=init_state)
-    xf = xf.x
+    # xf = find_stationary_state(NLSE, x0=init_state)
+    # xf = xf.x
     # np.savetxt('xf', xf.x)
 
     # xf = np.loadtxt('xf')
@@ -105,7 +76,7 @@ if __name__ == "__main__":
     plt.figure()
     plt.plot(NLSE.linspace, init_state, label='Init guess')
     plt.plot(NLSE.linspace, NLSE.soliton(NLSE.linspace), label='Analytical')
-    plt.plot(NLSE.linspace, xf, linestyle=':', label='Scipy root', markersize=20, linewidth=2)
+    # plt.plot(NLSE.linspace, xf, linestyle=':', label='Scipy root', markersize=20, linewidth=2)
     plt.plot(NLSE.linspace, xf2, linestyle='-.', label='Newton', markersize=20, linewidth=2)
     plt.xlim(-10, 10)
     plt.legend()
