@@ -10,8 +10,6 @@ import problems
 from progress.bar import Bar
 import os, sys, time
 
-
-
 class Simulation:
     def __init__(self, x_start=0, x_stop=1, number_of_psi=100, number_of_spatial_dimensions=1,
                  nonlinear=False):
@@ -49,18 +47,10 @@ class Simulation:
         n = 0
         x_arr = []
         bar = Bar('Processing', max=int((t_stop-t_start)/delta_t))
-        # t_stop = 2*delta_t
-        # plt.figure()
-        # plt.plot(np.real(x))
-        # plt.plot(np.imag(x))
         while t < t_stop:
             x = x + delta_t * f(x, u(t), p)
             n += 1
             t = t + delta_t
-            # plt.figure()
-            # plt.plot(np.real(x))
-            # plt.plot(np.imag(x))
-            # plt.show()
             # normalize the wave function for the quantum problem
             if not self.nonlinear:
                 norm = np.linalg.norm(x)
@@ -87,7 +77,7 @@ class Simulation:
             if t == 0:
                 x = f(x, u(0), u(0), p, delta_t,inverse)
             else:
-                x = x + f(x, u(t-1), u(t), p, delta_t, inverse)
+                x = x  + f(x, u(t-1), u(t), p, delta_t, inverse)
             t = t + delta_t
             n += 1
             # normalize
@@ -114,26 +104,19 @@ class Simulation:
         bar = Bar("Processing", max=int((t_stop-t_start)/delta_t), suffix='%(percent).1f%% - %(eta)ds')
         while t < t_stop:
             if t == 0:
-
-                # Note that I am artificially creating this A matrix
-                #TODO Switch this over to the proper A matrix
-                A = np.diag(np.ones(self.number_of_psi - 3), 1) + np.diag(np.ones(self.number_of_psi - 3), -1)
-                np.fill_diagonal(A, -2)
-                inverse = -1j*np.linalg.inv(np.eye(x.shape[0],x.shape[0])-delta_t/2. * A)/1000
-
-                # inverse = np.linalg.inv(np.eye(x.shape[0],x.shape[0])-delta_t/2. * p['A']())
-                x = f(x, u(0), u(0), p, delta_t,inverse)
+                inverse = np.eye(len(u(0))) - delta_t/2*p["A"](x_start)
+                np.linalg.inv(inverse)
+                x = f(x,u(0),u(0),p, delta_t,inverse)
             else:
-                # inverse = np.linalg.inv(np.eye(x.shape[0],x.shape[0])-delta_t/2. * p['A']())
-                x = x + f(x, u(t-1), u(t), p, delta_t, inverse)
+                inverse = np.eye(x.shape[0],x.shape[0]) - delta_t/2*p["A"](x)
+                inverse = np.linalg.inv(inverse)
+                x = f(x,u(t-1),u(t),p, delta_t, inverse)
             t = t + delta_t
             n += 1
-            # normalize
-            norm = np.linalg.norm(x)
-            x = x/norm
-            # Save only usable frames
+
             if n % animation_timestep == 0:
                 x_arr.append(x)
+
             bar.next()
         bar.finish()
         return x, x_arr
@@ -157,4 +140,5 @@ class Simulation:
             return np.dot(inverse,RHS)
         elif self.nonlinear:
             RHS = x + delta_t/2.*p['B'].dot(u_previous) + delta_t/2.*p['B'].dot(u_current) + delta_t/2.*p['A'](x).dot(x)
+            assert np.any(np.isfinite(x))
             return np.dot(inverse,RHS)

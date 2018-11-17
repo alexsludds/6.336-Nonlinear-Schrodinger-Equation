@@ -40,10 +40,10 @@ if __name__ == "__main__":
     display_animation = True
     plot_stationary_solution = False
     periodic_boundary_conditions = False
-    gif_name = "trapezoidal"
+    gif_name = "trap_with_disturbance"
     time_start = 0
-    time_stop = 10
-    delta_t = 1e-3
+    time_stop = 100
+    delta_t = 2e-3
 
     animation_timestep = int(animation_interval / delta_t)
 
@@ -53,6 +53,7 @@ if __name__ == "__main__":
     quantum = problems.Quantum(x_start=start_x, x_stop=stop_x, number_of_psi=number_of_psi,
                                number_of_spatial_dimensions=number_of_spatial_dimensions,
                                periodic=periodic_boundary_conditions)
+
     # hamiltonian = quantum.calc_A()
     #
     # # plot the stationary solution
@@ -69,21 +70,17 @@ if __name__ == "__main__":
     NLSE = problems.NLSE(x_start=start_x, x_stop=stop_x, number_of_psi=number_of_psi)
 
     init_state = NLSE.get_stationary_state()
-    # plt.figure()
-    # plt.plot(init_state)
-    # plt.show()
 
     u = NLSE.get_u()
     p = NLSE.get_P()
-    # x_final, x_arr = sim.forward_euler(sim.dxdt_f, u, init_state, p, t_start=time_start, t_stop=time_stop,
-                                       # delta_t=delta_t, animation_timestep=animation_timestep)
+    x_final, x_arr = sim.forward_euler(sim.dxdt_f, u, init_state, p, t_start=time_start, t_stop=time_stop,
+                                       delta_t=delta_t, animation_timestep=animation_timestep)
 
     # x_final, x_arr = sim.trapezoidal(sim.dxdt_f_trapezoid, u, init_state, p, t_start=time_start, t_stop=time_stop,
                                      # delta_t=delta_t, animation_timestep=animation_timestep)
 
-    x_final, x_arr = sim.trapezoidal_nl(sim.dxdt_f_trapezoid, u, init_state, p, t_start = time_start, t_stop = time_stop,
-                                        delta_t=delta_t, animation_timestep=animation_timestep)
-
+    # x_final, x_arr = sim.trapezoidal_nl(sim.dxdt_f_trapezoid, u, init_state, p, t_start = time_start, t_stop = time_stop,
+                                        # delta_t=delta_t, animation_timestep=animation_timestep)
 
     # Display animation
     if display_animation:

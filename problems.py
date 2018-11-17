@@ -147,6 +147,7 @@ class NLSE(Problem):
             return (self.beta/2*self.second_derivative_mat - self.gamma*self.nonlinear_matrix(x)) / 1j*self.time_multiplier
 
     def nonlinear_matrix(self, x):
+        assert np.any(np.isfinite(x))
         return np.diag(np.square(np.abs(x)))
 
     @benchmark
