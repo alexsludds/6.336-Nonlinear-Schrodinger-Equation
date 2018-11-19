@@ -1,17 +1,11 @@
 import numpy as np
 import scipy as sp
-import scipy.signal as signal
 from scipy.misc import imread
 import scipy.constants
-import matplotlib
-# We are using the qt backend because tkinter backend does not allow for gif creation without an open window
-matplotlib.use("Qt4Agg")
 import matplotlib.pyplot as plt
-# from array2gif import write_gif
-import matplotlib.animation as animation
+# We are using the qt backend because tkinter backend does not allow for gif creation without an open window
+# matplotlib.use("Qt4Agg")
 from progress.bar import Bar
-import os, sys, time
-from benchmark import benchmark
 import problems
 from animation import AnimationClass
 from simulation import Simulation
@@ -35,14 +29,14 @@ if __name__ == "__main__":
     hbar = sp.constants.h / (2*sp.pi)   # Reduced Planck constant = 1.055e-34 J s/rad
     # This constant allows for there to be runtime_in_seconds / animation_constant number of frames output animation.
     # Lower constant = faster animation.
-    animation_interval = 0.01 #Animation constant associated with coarseness.
-    animation_speed = 1./5 #Animation speed multiplier
+    animation_interval = 0.01  # Animation constant associated with coarseness.
+    animation_speed = 1./2  # Animation speed multiplier
     display_animation = True
     plot_stationary_solution = False
     periodic_boundary_conditions = False
     gif_name = "trap_with_disturbance"
     time_start = 0
-    time_stop = 100
+    time_stop = 10
     delta_t = 2e-3
 
     animation_timestep = int(animation_interval / delta_t)
@@ -71,16 +65,25 @@ if __name__ == "__main__":
 
     init_state = NLSE.get_stationary_state()
 
+    # plt.plot(init_state)
+
+    init_state = 0.5*np.exp(-(NLSE.linspace**2)/2)
+
+    # plt.plot(init_state)
+    # plt.show()
+    #
+    # quit()
+
     u = NLSE.get_u()
     p = NLSE.get_P()
-    x_final, x_arr = sim.forward_euler(sim.dxdt_f, u, init_state, p, t_start=time_start, t_stop=time_stop,
-                                       delta_t=delta_t, animation_timestep=animation_timestep)
+    # x_final, x_arr = sim.forward_euler(sim.dxdt_f, u, init_state, p, t_start=time_start, t_stop=time_stop,
+    #                                    delta_t=delta_t, animation_timestep=animation_timestep)
 
     # x_final, x_arr = sim.trapezoidal(sim.dxdt_f_trapezoid, u, init_state, p, t_start=time_start, t_stop=time_stop,
                                      # delta_t=delta_t, animation_timestep=animation_timestep)
 
-    # x_final, x_arr = sim.trapezoidal_nl(sim.dxdt_f_trapezoid, u, init_state, p, t_start = time_start, t_stop = time_stop,
-                                        # delta_t=delta_t, animation_timestep=animation_timestep)
+    x_final, x_arr = sim.trapezoidal_nl(sim.dxdt_f_trapezoid, u, init_state, p, t_start = time_start, t_stop = time_stop,
+                                        delta_t=delta_t, animation_timestep=animation_timestep)
 
     # Display animation
     if display_animation:
