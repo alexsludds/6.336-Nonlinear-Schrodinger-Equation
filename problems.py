@@ -178,7 +178,7 @@ class NLSE(Problem):
         print(D.shape)
         # print(f0)
         re, im = np.real(x), np.imag(x)
-        dfdRe = -self.gamma*(3*re**2 + 2.0j*re + im**2)
+        dfdRe = -self.gamma*(3*re**2 + 2.0j*re*im + im**2)
         dfdIm = -self.gamma*(1.0j*re**2 + 3.0j*im**2 + 2*im*re)
         for i in range(jacobian.shape[0]):
             column = D[:,i]
