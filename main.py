@@ -10,13 +10,6 @@ import problems
 from animation import AnimationClass
 from simulation import Simulation
 
-def real_to_complex(z):  # real vector of length 2n -> complex of length n
-    return z[:len(z) // 2] + 1j * z[len(z) // 2:]
-
-
-def complex_to_real(z):  # complex vector of length n -> real of length 2n
-    return np.concatenate((np.real(z), np.imag(z)))
-
 
 if __name__ == "__main__":
     number_of_psi = 100  # This is the total number of nodes.
@@ -28,24 +21,24 @@ if __name__ == "__main__":
     hbar = sp.constants.h / (2*sp.pi)   # Reduced Planck constant = 1.055e-34 J s/rad
     # This constant allows for there to be runtime_in_seconds / animation_constant number of frames output animation.
     # Lower constant = faster animation.
-    animation_interval = 0.01  # Animation constant associated with coarseness.
+    animation_interval = 0.1  # Animation constant associated with coarseness.
     animation_speed = 1./2  # Animation speed multiplier
     display_animation = True
     plot_stationary_solution = False
     periodic_boundary_conditions = False
     gif_name = "trap_with_disturbance"
     time_start = 0
-    time_stop = 5
-    delta_t = 2e-3
+    time_stop = 2*np.pi
+    delta_t = 1e-2
 
     animation_timestep = int(animation_interval / delta_t)
 
     sim = Simulation(x_start=start_x, x_stop=stop_x, number_of_psi=number_of_psi,
                      number_of_spatial_dimensions=number_of_spatial_dimensions, nonlinear=True)
 
-    quantum = problems.Quantum(x_start=start_x, x_stop=stop_x, number_of_psi=number_of_psi,
-                               number_of_spatial_dimensions=number_of_spatial_dimensions,
-                               periodic=periodic_boundary_conditions)
+    # quantum = problems.Quantum(x_start=start_x, x_stop=stop_x, number_of_psi=number_of_psi,
+    #                            number_of_spatial_dimensions=number_of_spatial_dimensions,
+    #                            periodic=periodic_boundary_conditions)
 
     # hamiltonian = quantum.calc_A()
     #
@@ -83,11 +76,11 @@ if __name__ == "__main__":
     # x_final, x_arr = sim.trapezoidal(sim.dxdt_f_trapezoid, u, init_state, p, t_start=time_start, t_stop=time_stop,
                                      # delta_t=delta_t, animation_timestep=animation_timestep)
 
-    # x_final, x_arr = sim.trapezoidal_nl(sim.dxdt_f_trapezoid, u, init_state, p, t_start = time_start, t_stop = time_stop,
+    # x_final, x_arr = sim.trapezoidal_nl(sim.dxdt_f_trapezoid, u, init_state, p, t_start=time_start, t_stop=time_stop,
                                         # delta_t=delta_t, animation_timestep=animation_timestep)
 
-    x_final, x_arr = sim.trapezoidal_nl_iterative(sim.dxdt_f,u,init_state,p,t_start = time_start, t_stop = time_stop,
-                                                  delta_t = delta_t, animation_timestep = animation_timestep)
+    x_final, x_arr = sim.trapezoidal_nl_iterative(sim.dxdt_f, u, init_state, p, t_start=time_start, t_stop=time_stop,
+                                                  delta_t=delta_t, animation_timestep=animation_timestep, NLSE=NLSE)
 
     # Display animation
     if display_animation:
