@@ -19,7 +19,6 @@ class Problem:
         self.dx = (self.x_stop - self.x_start)/(self.number_of_psi-1)
         self.periodic = periodic    # Default is 0 boundary conditions
 
-    @benchmark
     def second_derivative(self):
         """Matrix calculating second derivative with 0 boundary condition"""
         D = None
@@ -150,44 +149,52 @@ class NLSE(Problem):
         assert np.any(np.isfinite(x))
         return np.diag(np.square(np.abs(x)))
 
-    @benchmark
     def calc_jacobian_numerical(self, f, x, u, p, epsilon):
         """Return the Jacobian calculated using finite-difference
         The Jacobian is size (n, 2n) where n is size of x because x is complex"""
-        jacobian = np.zeros((self.number_of_psi-2, 2*(self.number_of_psi-2)), dtype=complex)
+        jacobian = np.zeros((2*(self.number_of_psi-2), 2*(self.number_of_psi-2)), dtype=complex)
         f0 = f(x, u, p)
-        # print(f0)
-        for i in range(len(x)):
-            delta_x = np.zeros(self.number_of_psi-2)
-            delta_x[i] = epsilon
-            j_i_real = (f(x + delta_x, u, p) - f0)/epsilon
-            j_i_imag = (f(x + 1.0j*delta_x, u, p) - f0)/(epsilon*1.0j)
-            jacobian[:, 2*i] = j_i_real
-            jacobian[:, 2*i+1] = j_i_imag
-        jacobian2 = np.zeros((2*(self.number_of_psi-2), 2*(self.number_of_psi-2)))
-        for i in range(len(x)):
-            jacobian[2*i, :] = np.real(jacobian[i])
-            jacobian[2*i+1, :] = np.imag(jacobian[i])
-        return jacobian2
+        for perturbation in range(self.number_of_psi - 2):
+            delta_x = np.zeros(self.number_of_psi -2)
+            delta_x[perturbation] = 1
+            #Perturb in real
+            real = (f(x + epsilon*delta_x,u,p)-f0)/(epsilon)
+            #Perturb in imaginary
+            imag = (f(x + 1j*epsilon*delta_x,u,p)-f0)/(1j*epsilon)
+            jacobian[0::2,2*perturbation] = np.real(real) #dReal/dReal
+            jacobian[0::2,2*perturbation+1] = np.real(imag) #dReal/dImag
+            jacobian[1::2,2*perturbation] = np.imag(real) #dImag/dReal
+            jacobian[1::2,2*perturbation+1] = np.imag(imag) #dImag/dImag
+
+        return jacobian
+
+    '''
+    Takes a complex vector of length n and returns a real vector of length 2n
+    '''
+    def n_to_2n(self,x):
+        return np.vstack((np.real(x),np.imag(x))).reshape((2*x.size,), order="F")
+
+    def two_n_to_n(self,x):
+        returnable = x[0::2]
+        returnable = returnable.astype(np.complex128)
+        returnable += 1j*x[1::2]
+        return returnable
 
     def calc_jacobian_analytical(self, x):
         """Return the Jacobian calculated using analytical expression
         The Jacobian is size (n, 2n) where n is size of x because x is complex"""
         jacobian = np.zeros((self.number_of_psi-2, 2*self.number_of_psi), dtype=complex)
         D = self.beta/2*self.second_derivative()
-        print(D.shape)
         # print(f0)
         re, im = np.real(x), np.imag(x)
         dfdRe = -self.gamma*(3*re**2 + 2.0j*re*im + im**2)
         dfdIm = -self.gamma*(1.0j*re**2 + 3.0j*im**2 + 2*im*re)
         for i in range(jacobian.shape[0]):
             column = D[:,i]
-            print(column.shape)
             jacobian[:, 2*i] = column
             jacobian[:, 2*i+1] = column
             jacobian[i,i] = jacobian[i,i] + dfdRe[i]
             jacobian[i,2*i+1] = jacobian[i,2*i+1] + dfdIm[i]
-        print(jacobian)
         return jacobian
 
     def get_P(self):

@@ -10,7 +10,6 @@ import problems
 from animation import AnimationClass
 from simulation import Simulation
 
-
 def real_to_complex(z):  # real vector of length 2n -> complex of length n
     return z[:len(z) // 2] + 1j * z[len(z) // 2:]
 
@@ -82,8 +81,10 @@ if __name__ == "__main__":
     # x_final, x_arr = sim.trapezoidal(sim.dxdt_f_trapezoid, u, init_state, p, t_start=time_start, t_stop=time_stop,
                                      # delta_t=delta_t, animation_timestep=animation_timestep)
 
-    x_final, x_arr = sim.trapezoidal_nl(sim.dxdt_f_trapezoid, u, init_state, p, t_start = time_start, t_stop = time_stop,
-                                        delta_t=delta_t, animation_timestep=animation_timestep)
+    # x_final, x_arr = sim.trapezoidal_nl(sim.dxdt_f_trapezoid, u, init_state, p, t_start = time_start, t_stop = time_stop,
+                                        # delta_t=delta_t, animation_timestep=animation_timestep)
+    x_final, x_arr = sim.trapezoidal_nl_iterative(sim.dxdt_f,u,init_state,p,t_start = time_start, t_stop = time_stop,
+                                                  delta_t = delta_t, animation_timestep = animation_timestep)
 
     # Display animation
     if display_animation:
