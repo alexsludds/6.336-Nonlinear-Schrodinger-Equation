@@ -2,6 +2,7 @@ import numpy as np
 import scipy as sp
 import scipy.signal as signal
 from scipy.misc import imread
+import scipy.sparse as sparse
 import scipy.constants
 import matplotlib
 import matplotlib.pyplot as plt
@@ -169,7 +170,6 @@ class Simulation:
             bar.next()
         bar.finish()
         return x, x_arr
-
 
 
     @benchmark
