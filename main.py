@@ -35,7 +35,7 @@ if __name__ == "__main__":
     periodic_boundary_conditions = False
     gif_name = "trap_with_disturbance"
     time_start = 0
-    time_stop = 10
+    time_stop = 5
     delta_t = 2e-3
 
     animation_timestep = int(animation_interval / delta_t)
