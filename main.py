@@ -75,14 +75,17 @@ if __name__ == "__main__":
 
     u = NLSE.get_u()
     p = NLSE.get_P()
+
+
     # x_final, x_arr = sim.forward_euler(sim.dxdt_f, u, init_state, p, t_start=time_start, t_stop=time_stop,
-    #                                    delta_t=delta_t, animation_timestep=animation_timestep)
+                                       # delta_t=delta_t, animation_timestep=animation_timestep)
 
     # x_final, x_arr = sim.trapezoidal(sim.dxdt_f_trapezoid, u, init_state, p, t_start=time_start, t_stop=time_stop,
                                      # delta_t=delta_t, animation_timestep=animation_timestep)
 
     # x_final, x_arr = sim.trapezoidal_nl(sim.dxdt_f_trapezoid, u, init_state, p, t_start = time_start, t_stop = time_stop,
                                         # delta_t=delta_t, animation_timestep=animation_timestep)
+
     x_final, x_arr = sim.trapezoidal_nl_iterative(sim.dxdt_f,u,init_state,p,t_start = time_start, t_stop = time_stop,
                                                   delta_t = delta_t, animation_timestep = animation_timestep)
 

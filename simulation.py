@@ -151,11 +151,11 @@ class Simulation:
                 minus_F = -(x_lk - delta_t/2.*f(x_lk,u(t),p) - gamma)
                 minus_F = NLSE.n_to_2n(minus_F)
                 #Solve system
-                delta_x = np.linalg.solve(J,minus_F)
+                delta_x = sparse.linalg.spsolve(J,minus_F)
                 delta_x = NLSE.two_n_to_n(delta_x)
                 x_lk = x_lk + delta_x
-                magnitude_delta_x = np.linalg.norm(delta_x)
-                magnitude_x_lk_gamma = np.linalg.norm(x_lk - delta_t/2.*f(x_lk,u(t),p)-gamma)
+                magnitude_delta_x = np.max(delta_x)
+                magnitude_x_lk_gamma = np.max(x_lk - delta_t/2.*f(x_lk,u(t),p)-gamma)
                 # print(magnitude_delta_x,magnitude_x_lk_gamma)
                 if magnitude_delta_x < x_lk_accuracy and magnitude_x_lk_gamma < x_lk_gamma_accuracy:
                     break
