@@ -154,7 +154,7 @@ class NLSE(Problem):
     def calc_jacobian_numerical(self, f, x, u, p, epsilon):
         """Return the Jacobian calculated using finite-difference
         The Jacobian is size (n, 2n) where n is size of x because x is complex"""
-        jacobian = np.zeros((2*(self.number_of_psi-2), 2*(self.number_of_psi-2)), dtype=complex)
+        jacobian = np.zeros((self.number_of_psi-2, 2*(self.number_of_psi-2)), dtype=complex)
         f0 = f(x, u, p)
         # print(f0)
         for i in range(len(x)):
