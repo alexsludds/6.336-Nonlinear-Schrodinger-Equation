@@ -9,21 +9,6 @@ from main import Simulation
 from scipy import optimize
 
 
-def real_to_complex(z):  # real vector of length 2n -> complex of length n
-    return z[:len(z) // 2] + 1j * z[len(z) // 2:]
-
-
-def complex_to_real(z):  # complex vector of length n -> real of length 2n
-    return np.concatenate((np.real(z), np.imag(z)))
-
-
-def shooting_function(x):
-    init_state = x
-    xf, _ = sim.forward_euler(sim.dxdt_f, u, init_state, p, t_start=time_start, t_stop=time_stop,
-                      delta_t=delta_t, animation_timestep=1e10)
-    return xf - x
-
-
 def find_stationary_state(problem, x0):
     xf = optimize.root(problem.calc_F_stationary, x0=x0, jac=problem.calc_F_stationary_Jacobian)
     return xf
