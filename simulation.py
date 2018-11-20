@@ -121,6 +121,56 @@ class Simulation:
         bar.finish()
         return x, x_arr
 
+    @benchmark
+    #Iterative Trapezoidal Rule with Nonlinearity
+    def trapezoidal_nl_iterative(self,f,u,x_start,p,t_start,t_stop,delta_t,animation_timestep):
+        x_lk_accuracy = 10**(-2)
+        x_lk_gamma_accuracy = 10**(-2)
+        x = x_start
+        t = t_start
+        x_arr = []
+        n = 0
+        NLSE = problems.NLSE(x_start=-10,x_stop = 10,number_of_psi = 100)
+
+        bar = Bar("Processing",max=int((t_stop-t_start)/delta_t), suffix='%(percent).1f%% - %(eta)ds')
+        while t < t_stop:
+            k = 0 #Newton Method iterative index
+            #Use Forward Euler in order to compute
+            x_lk = x + delta_t * f(x,u(t),p)
+            gamma = x + delta_t/2. *  f(x,u(t),p)
+            while True: #Newton method loop index
+                #We will compare the numerical and analytical jacobians:
+                numerical = NLSE.calc_jacobian_numerical(f,x_lk,u(t),p,delta_t)
+                x_2n = NLSE.n_to_2n(x_lk)
+                # analytical = NLSE.calc_jacobian_analytical(x_2n)
+                #Calculate Jacobian
+                J = numerical
+                J = np.eye(J.shape[0]) - delta_t/2.*J #TODO Is this valid?
+                #Stamp RHS
+                minus_F = -(x_lk - delta_t/2.*f(x_lk,u(t),p) - gamma)
+                minus_F = NLSE.n_to_2n(minus_F)
+                #Solve system
+                delta_x = np.linalg.solve(J,minus_F)
+                delta_x = NLSE.two_n_to_n(delta_x)
+                x_lk = x_lk + delta_x
+                magnitude_delta_x = np.linalg.norm(delta_x)
+                magnitude_x_lk_gamma = np.linalg.norm(x_lk - delta_t/2.*f(x_lk,u(t),p)-gamma)
+                # print(magnitude_delta_x,magnitude_x_lk_gamma)
+                if magnitude_delta_x < x_lk_accuracy and magnitude_x_lk_gamma < x_lk_gamma_accuracy:
+                    break
+            #We must update our values
+            x = x_lk
+            t = t + delta_t
+            n += 1
+
+            if n % animation_timestep == 0:
+                x_arr.append(x)
+
+            bar.next()
+        bar.finish()
+        return x, x_arr
+
+
 
     @benchmark
     def plot_stationary(self, eigenvector):
@@ -132,7 +182,8 @@ class Simulation:
         if not self.nonlinear:
             return p["A"].dot(x) + p["B"].dot(u)
         else:
-            return p["A"](x).dot(x) + p["B"].dot(u)
+            returnable = p["A"](x).dot(x) + p["B"].dot(u)
+            return returnable
 
     def dxdt_f_trapezoid(self,x,u_previous,u_current,p,delta_t,inverse):
         if not self.nonlinear:
