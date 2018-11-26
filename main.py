@@ -82,6 +82,7 @@ if __name__ == "__main__":
     x_final, x_arr = sim.trapezoidal_nl_iterative(sim.dxdt_f, u, init_state, p, t_start=time_start, t_stop=time_stop,
                                                   delta_t=delta_t, animation_timestep=animation_timestep, NLSE=NLSE)
 
+
     # Display animation
     if display_animation:
         ani = AnimationClass(animation_interval=animation_timestep,
