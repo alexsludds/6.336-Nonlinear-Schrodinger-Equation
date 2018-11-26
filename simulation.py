@@ -143,12 +143,12 @@ class Simulation:
             gamma = x + delta_t/2. * f(x,u(t),p)
             while True: # Newton method loop index
                 # We will compare the numerical and analytical jacobians:
-                numerical = NLSE.calc_jacobian_numerical(f,x_lk,u(t),p,delta_t)
-                x_2n = NLSE.n_to_2n(x_lk)
-                # analytical = NLSE.calc_jacobian_analytical(x_2n)
+                # J = NLSE.calc_jacobian_numerical(f,x_lk,u(t),p,delta_t) #Use the numerical Jacobian
+                J = NLSE.calc_jacobian_analytical(x) #Use the analytical Jacobian
                 # Calculate Jacobian
-                J = numerical
                 J = np.eye(J.shape[0]) - delta_t/2.*J  # TODO Is this valid?
+                #Create sparse version of J matrix
+                J = sparse.csc_matrix(J)
                 # Stamp RHS
                 minus_F = -(x_lk - delta_t/2.*f(x_lk,u(t),p) - gamma)
                 minus_F = NLSE.n_to_2n(minus_F)
