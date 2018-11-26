@@ -161,15 +161,10 @@ class NLSE(Problem):
             real = (f(x + epsilon*delta_x,u,p)-f0)/(epsilon)
             #Perturb in imaginary
             imag = (f(x + 1j*epsilon*delta_x,u,p)-f0)/(1j*epsilon)
-            # print("drdr",np.real(real))
-            # print("drdi",np.real(imag))
-            # print("didr",np.imag(real))
-            # print("didi",np.imag(imag))
             jacobian[0::2,2*perturbation] = np.real(real) #dReal/dReal
             jacobian[0::2,2*perturbation+1] = np.real(imag) #dReal/dImag
             jacobian[1::2,2*perturbation] = np.imag(real) #dImag/dReal
             jacobian[1::2,2*perturbation+1] = np.imag(imag) #dImag/dImag
-        # print(jacobian)
         return jacobian
 
     '''
@@ -200,15 +195,10 @@ class NLSE(Problem):
 
 
         for perturbation in range(self.number_of_psi - 2):
-            # print("drdr",dRdRNL)
-            # print("drdi",dRdINL)
-            # print("didr",dIdRNL)
-            # print("didi",dIdINL)
-            jacobian[0::2,2*perturbation] = D[:,perturbation] + dRdRNL
-            jacobian[0::2,2*perturbation+1] = D[:,perturbation] + dRdINL
-            jacobian[1::2,2*perturbation] = D[:,perturbation] + dIdRNL
-            jacobian[1::2,2*perturbation+1] = D[:,perturbation] + dIdINL
-        # print(jacobian)
+            jacobian[0::2,2*perturbation] =  dRdRNL
+            jacobian[0::2,2*perturbation+1] = dRdINL
+            jacobian[1::2,2*perturbation] = -1*D[:,perturbation] + dIdRNL
+            jacobian[1::2,2*perturbation+1] = -1*D[:,perturbation] + dIdINL
         return jacobian
 
     def get_P(self):
