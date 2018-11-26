@@ -151,20 +151,20 @@ class NLSE(Problem):
 
     def calc_jacobian_numerical(self, f, x, u, p, epsilon):
         """Return the Jacobian calculated using finite-difference
-        The Jacobian is size (n, 2n) where n is size of x because x is complex"""
-        jacobian = np.zeros((2*(self.number_of_psi-2), 2*(self.number_of_psi-2)), dtype=complex)
+        The Jacobian is size (2n, 2n) where n is size of x because x is complex"""
+        jacobian = np.zeros((2*(self.number_of_psi-2), 2*(self.number_of_psi-2)))
         f0 = f(x, u, p)
         for perturbation in range(self.number_of_psi - 2):
             delta_x = np.zeros(self.number_of_psi -2)
             delta_x[perturbation] = 1
-            #Perturb in real
-            real = (f(x + epsilon*delta_x,u,p)-f0)/(epsilon)
-            #Perturb in imaginary
-            imag = (f(x + 1j*epsilon*delta_x,u,p)-f0)/(1j*epsilon)
-            jacobian[0::2,2*perturbation] = np.real(real) #dReal/dReal
-            jacobian[0::2,2*perturbation+1] = np.real(imag) #dReal/dImag
-            jacobian[1::2,2*perturbation] = np.imag(real) #dImag/dReal
-            jacobian[1::2,2*perturbation+1] = np.imag(imag) #dImag/dImag
+            # Perturb in real
+            real = (f(x + epsilon*delta_x, u, p) - f0) / epsilon
+            # Perturb in imaginary
+            imag = (f(x + 1j*epsilon*delta_x, u, p) - f0) / (1j*epsilon)
+            jacobian[0::2, 2*perturbation] = np.real(real)       # dReal/dReal
+            jacobian[0::2, 2*perturbation+1] = np.real(imag)     # dReal/dImag
+            jacobian[1::2, 2*perturbation] = np.imag(real)       # dImag/dReal
+            jacobian[1::2, 2*perturbation+1] = np.imag(imag)     # dImag/dImag
 
         return jacobian
 
@@ -182,19 +182,35 @@ class NLSE(Problem):
 
     def calc_jacobian_analytical(self, x):
         """Return the Jacobian calculated using analytical expression
-        The Jacobian is size (n, 2n) where n is size of x because x is complex"""
+        The Jacobian is size (2n, 2n) where n is size of x because x is complex"""
         jacobian = np.zeros((self.number_of_psi-2, 2*self.number_of_psi), dtype=complex)
-        D = self.beta/2*self.second_derivative()
+        D = self.beta/2*self.second_derivative_mat
         # print(f0)
         re, im = np.real(x), np.imag(x)
         dfdRe = -self.gamma*(3*re**2 + 2.0j*re*im + im**2)
         dfdIm = -self.gamma*(1.0j*re**2 + 3.0j*im**2 + 2*im*re)
         for i in range(jacobian.shape[0]):
-            column = D[:,i]
+            column = D[:, i]
             jacobian[:, 2*i] = column
             jacobian[:, 2*i+1] = column
-            jacobian[i,i] = jacobian[i,i] + dfdRe[i]
-            jacobian[i,2*i+1] = jacobian[i,2*i+1] + dfdIm[i]
+            jacobian[i, i] = jacobian[i,i] + dfdRe[i]
+            jacobian[i, 2*i+1] = jacobian[i, 2*i+1] + dfdIm[i]
+        return jacobian
+
+    def calc_jacobian_analytical2(self, x):
+        """Attempt by Sam"""
+        jacobian = np.zeros((2*(self.number_of_psi-2), 2*(self.number_of_psi-2)))
+        term1 = self.beta/2*self.second_derivative_mat*1j
+
+        re, im = np.real(x), np.imag(x)
+        dfdRe = -self.gamma*(3*re**2 + 2.0j*re*im + im**2)
+        dfdIm = -self.gamma*(1.0j*re**2 + 3.0j*im**2 + 2*im*re)
+        for i in range(jacobian.shape[0]):
+            column = D[:, i]
+            jacobian[:, 2*i] = column
+            jacobian[:, 2*i+1] = column
+            jacobian[i, i] = jacobian[i,i] + dfdRe[i]
+            jacobian[i, 2*i+1] = jacobian[i, 2*i+1] + dfdIm[i]
         return jacobian
 
     def get_P(self):

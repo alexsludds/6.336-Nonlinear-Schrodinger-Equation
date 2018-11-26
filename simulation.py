@@ -95,6 +95,7 @@ class Simulation:
     @benchmark
     # Trapezoidal Nonlinearity
     def trapezoidal_nl(self, f, u, x_start, p, t_start, t_stop, delta_t, animation_timestep):
+        """Hybrid Forward Euler and trapezoidal rule where we approximate non-linearity as constant"""
         x = x_start
         t = t_start
         x_arr = []
@@ -124,9 +125,9 @@ class Simulation:
 
     @benchmark
     # Iterative Trapezoidal Rule with Nonlinearity
-    def trapezoidal_nl_iterative(self,f,u,x_start,p,t_start,t_stop,delta_t,animation_timestep,NLSE=None):
-        x_lk_accuracy = 10**(-2)
-        x_lk_gamma_accuracy = 10**(-2)
+    def trapezoidal_nl_iterative(self, f, u, x_start, p, t_start, t_stop, delta_t, animation_timestep, NLSE=None):
+        x_lk_accuracy = 1e-2
+        x_lk_gamma_accuracy = 1e-2
         x = x_start
         t = t_start
         x_arr = []
@@ -152,7 +153,7 @@ class Simulation:
                 minus_F = -(x_lk - delta_t/2.*f(x_lk,u(t),p) - gamma)
                 minus_F = NLSE.n_to_2n(minus_F)
                 # Solve system
-                delta_x = sparse.linalg.spsolve(J,minus_F)
+                delta_x = sparse.linalg.spsolve(J, minus_F)
                 delta_x = NLSE.two_n_to_n(delta_x)
                 x_lk = x_lk + delta_x
                 magnitude_delta_x = np.max(delta_x)

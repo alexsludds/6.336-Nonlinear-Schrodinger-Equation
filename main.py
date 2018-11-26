@@ -11,7 +11,7 @@ from animation import AnimationClass
 from simulation import Simulation
 
 
-if __name__ == "__main__":
+def main(display_animation=True):
     number_of_psi = 100  # This is the total number of nodes.
     # We are solving for number_of_psi-2 because of boundary conditions
     number_of_spatial_dimensions = 1
@@ -23,7 +23,6 @@ if __name__ == "__main__":
     # Lower constant = faster animation.
     animation_interval = 0.1  # Animation constant associated with coarseness.
     animation_speed = 1./2  # Animation speed multiplier
-    display_animation = True
     plot_stationary_solution = False
     periodic_boundary_conditions = False
     gif_name = "trap_with_disturbance"
@@ -91,3 +90,7 @@ if __name__ == "__main__":
         ani.run_animation_with_propagation()
         ani.create_gif()
         ani.create_video()
+
+
+if __name__ == "__main__":
+    main()
