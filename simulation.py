@@ -135,7 +135,7 @@ class Simulation:
         if NLSE is None:
             NLSE = problems.NLSE(x_start=-10,x_stop = 10,number_of_psi = 100)
 
-        bar = Bar("Processing",max=int((t_stop-t_start)/delta_t), suffix='%(percent).1f%% - %(eta)ds')
+        bar = Bar("Processing",max=int((t_stop-t_start)/(delta_t*animation_timestep)), suffix='%(percent).1f%% - %(eta)ds')
         while t < t_stop:
             k = 0 # Newton Method iterative index
             # Use Forward Euler in order to compute
@@ -146,14 +146,16 @@ class Simulation:
                 # J = NLSE.calc_jacobian_numerical(f,x_lk,u(t),p,delta_t) #Use the numerical Jacobian
                 J = NLSE.calc_jacobian_analytical(x) #Use the analytical Jacobian
                 # Calculate Jacobian
-                J = np.eye(J.shape[0]) - delta_t/2.*J  # TODO Is this valid?
+                J = np.eye(J.shape[0]) - delta_t/2.*J 
                 #Create sparse version of J matrix
                 J = sparse.csc_matrix(J)
                 # Stamp RHS
                 minus_F = -(x_lk - delta_t/2.*f(x_lk,u(t),p) - gamma)
                 minus_F = NLSE.n_to_2n(minus_F)
                 # Solve system
-                delta_x = sparse.linalg.spsolve(J, minus_F)
+                # delta_x = sparse.linalg.spsolve(J, minus_F) 
+                two_x = NLSE.n_to_2n(x)
+                delta_x = sparse.linalg.minres(J,minus_F,x0 = two_x,tol = 1e-1)[0]
                 delta_x = NLSE.two_n_to_n(delta_x)
                 x_lk = x_lk + delta_x
                 magnitude_delta_x = np.max(delta_x)
@@ -169,7 +171,7 @@ class Simulation:
             if n % animation_timestep == 0:
                 x_arr.append(x)
 
-            bar.next()
+                bar.next()
         bar.finish()
         return x, x_arr
 

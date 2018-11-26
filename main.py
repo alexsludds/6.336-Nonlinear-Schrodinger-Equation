@@ -25,9 +25,9 @@ def main(display_animation=True):
     animation_speed = 1./2  # Animation speed multiplier
     plot_stationary_solution = False
     periodic_boundary_conditions = False
-    gif_name = "trap_with_disturbance"
+    gif_name = "measure_speed"
     time_start = 0
-    time_stop = 2*np.pi
+    time_stop = 20*np.pi
     delta_t = 1e-2
 
     animation_timestep = int(animation_interval / delta_t)
