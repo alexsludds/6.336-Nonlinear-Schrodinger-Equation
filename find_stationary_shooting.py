@@ -44,11 +44,13 @@ def newton(fun, x0, jac=None):
                 break
         return x0
     else:
-        tol = 1e-3
+        tol = 1e-2
         max_iter = 10
         for i in range(max_iter):
             f_i = fun(x0)
             dx = gcr(fun, -f_i, x0)
+            # dx = scipy.sparse.linalg.cg()
+            print("Newton iteration dx = %f" % np.amax(np.abs(dx)))
             x0 = x0 + dx
 
             if np.amax(np.abs(f_i)) < tol and np.amax(np.abs(dx)) < tol:
@@ -82,8 +84,10 @@ def gcr(fun, b, x0, max_iter=10, eps=1e-6, tol=1e-3):
         r_norm = np.linalg.norm(r, 2)
 
         if r_norm < tol*r0_norm:
+            print("GCR Converged in %d iterations with residual %f" % (i, r_norm))
             break
 
+    print("GCR did not converge in %d iterations. Residual %f" % (max_iter, r_norm))
     return x
 
 
@@ -92,13 +96,13 @@ if __name__ == "__main__":
     # We are solving for number_of_psi-2 because of boundary conditions
     number_of_spatial_dimensions = 1
     mode = 1
-    start_x = -100
-    stop_x = 100
+    start_x = -10
+    stop_x = 10
     periodic_boundary_conditions = True
     gif_name = "test"
     time_start = 0
-    time_stop = 6.7
-    # time_stop = 0.1
+    # time_stop = 2*np.pi
+    time_stop = 1
     delta_t = 1e-2
 
     sim = Simulation(x_start=start_x, x_stop=stop_x, number_of_psi=number_of_psi,
@@ -106,6 +110,7 @@ if __name__ == "__main__":
 
     NLSE = problems.NLSE(x_start=start_x, x_stop=stop_x, number_of_psi=number_of_psi, periodic=True)
     init_state = NLSE.get_stationary_state()
+    init_state = 0.7*np.exp(-NLSE.linspace**2/2)
 
     u = NLSE.get_u()
     p = NLSE.get_P()
@@ -121,17 +126,17 @@ if __name__ == "__main__":
         xf = complex_to_real(xf)
         return xf - x0
 
-    # xf = optimize.root(shooting, x0=complex_to_real(init_state), tol=1e-3, method='krylov',
-    #                    options={'xtol': 1e-3, 'maxfev': 10})
-    xf = optimize.root(shooting, x0=complex_to_real(init_state))
+    # xf = optimize.root(shooting, x0=complex_to_real(init_state), tol=1e-3,
+    #                    options={'xtol': 1e-3, 'maxfev': 1})
+    # xf = xf.x
+    xf = newton(shooting, x0=complex_to_real(init_state))
 
     xf = real_to_complex(xf)
 
-    # init_state = 0.7*np.exp(-NLSE.linspace**2/2)
-
     # xf = find_stationary_state(NLSE, x0=init_state)
     # xf = xf.x
-    np.savetxt('xf_shooting', xf.x)
+    np.savetxt('xf_shooting', xf)
+    np.savetxt('xf_shooting2.txt', xf.view(float))
 
     # xf2 = np.loadtxt('xf')
 

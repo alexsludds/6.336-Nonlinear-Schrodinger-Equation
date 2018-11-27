@@ -27,7 +27,7 @@ def main(display_animation=True):
     periodic_boundary_conditions = False
     gif_name = "measure_speed"
     time_start = 0
-    time_stop = 20*np.pi
+    time_stop = 2*np.pi
     delta_t = 1e-2
 
     animation_timestep = int(animation_interval / delta_t)
@@ -55,6 +55,7 @@ def main(display_animation=True):
     NLSE = problems.NLSE(x_start=start_x, x_stop=stop_x, number_of_psi=number_of_psi)
 
     init_state = NLSE.get_stationary_state()
+    # init_state = np.loadtxt('xf_shooting2.txt').view(complex)
 
     # plt.plot(init_state)
 
