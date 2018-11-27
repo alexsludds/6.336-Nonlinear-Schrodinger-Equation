@@ -134,14 +134,15 @@ class NLSE(Problem):
         self.beta = beta
         # Reparameterization for different notation
         self.d = -self.beta/2
-        self.delta = -self.gamma
         self.second_derivative_mat = self.second_derivative()
         self.time_multiplier = 1e0
 
-    def calc_A(self, x=None):
+    def calc_A(self, x=None,t_index = None):
         if x is None:
             print("Warning: using linear Schrodinger equation")
             return self.beta/2*self.second_derivative_mat/1j*self.time_multiplier
+        elif t_index is not None:
+            return (self.beta/2*self.second_derivative_mat - self.gamma[t_index]*self.nonlinear_matrix(x)) / 1j*self.time_multiplier
         else:
             return (self.beta/2*self.second_derivative_mat - self.gamma*self.nonlinear_matrix(x)) / 1j*self.time_multiplier
 
@@ -149,18 +150,18 @@ class NLSE(Problem):
         assert np.any(np.isfinite(x))
         return np.diag(np.square(np.abs(x)))
 
-    def calc_jacobian_numerical(self, f, x, u, p, epsilon):
+    def calc_jacobian_numerical(self, f, x, u, p, epsilon, t_index):
         """Return the Jacobian calculated using finite-difference
         The Jacobian is size (2n, 2n) where n is size of x because x is complex"""
         jacobian = np.zeros((2*(self.number_of_psi-2), 2*(self.number_of_psi-2)))
-        f0 = f(x, u, p)
+        f0 = f(x, u, p,t_index)
         for perturbation in range(self.number_of_psi - 2):
             delta_x = np.zeros(self.number_of_psi -2)
             delta_x[perturbation] = 1
             # Perturb in real
-            real = (f(x + epsilon*delta_x, u, p) - f0) / epsilon
+            real = (f(x + epsilon*delta_x, u, p, t_index) - f0) / epsilon
             # Perturb in imaginary
-            imag = (f(x + 1j*epsilon*delta_x, u, p) - f0) / (1j*epsilon)
+            imag = (f(x + 1j*epsilon*delta_x, u, p, t_index) - f0) / (1j*epsilon)
             jacobian[0::2, 2*perturbation] = np.real(real)       # dReal/dReal
             jacobian[0::2, 2*perturbation+1] = np.real(imag)     # dReal/dImag
             jacobian[1::2, 2*perturbation] = np.imag(real)       # dImag/dReal
@@ -180,7 +181,7 @@ class NLSE(Problem):
         returnable += 1j*x[1::2]
         return returnable
 
-    def calc_jacobian_analytical(self, x):
+    def calc_jacobian_analytical(self, x, t_index=None):
         """Return the Jacobian calculated using analytical expression
         The Jacobian is size (2n, 2n) where n is size of x because x is complex """
         jacobian = np.zeros((2*(self.number_of_psi-2), 2*(self.number_of_psi-2)), dtype=complex)
@@ -189,17 +190,17 @@ class NLSE(Problem):
         D = self.beta/2.*self.second_derivative()
 
         #Calculate nonlinear part of the analytical Jacobian
-        dRdRNL = self.gamma * (3*re**2 + im**2)
-        dRdINL = self.gamma * (2*re*im)
-        dIdRNL = self.gamma * (2*re*im)
-        dIdINL = self.gamma * (re**2 + 3*im**2)
-
-
         for perturbation in range(self.number_of_psi - 2):
+            dRdRNL = self.gamma[t_index] * (3*re**2 + im**2)
+            dRdINL = self.gamma[t_index] * (2*re*im)
+            dIdRNL = self.gamma[t_index] * (2*re*im)
+            dIdINL = self.gamma[t_index] * (re**2 + 3*im**2)
+
             jacobian[0::2,2*perturbation] =  dRdRNL
             jacobian[0::2,2*perturbation+1] = dRdINL
             jacobian[1::2,2*perturbation] = -1*D[:,perturbation] + dIdRNL
             jacobian[1::2,2*perturbation+1] = -1*D[:,perturbation] + dIdINL
+
         return jacobian
 
     def get_P(self):
@@ -224,7 +225,10 @@ class NLSE(Problem):
     def soliton(self, t):
         # theta = 0.5*-self.gamma*A0**2 * z
         tau = 1
-        A0 = np.sqrt(-self.beta/self.gamma)
+        if type(self.gamma) == float or type(self.gamma) == int:
+            A0 = np.sqrt(-self.beta/self.gamma)
+        else:
+            A0 = np.sqrt(-self.beta/self.gamma[0])
         return A0 / np.cosh(t/tau)
 
     def get_stationary_state(self):

@@ -27,7 +27,7 @@ def main(display_animation=True):
     periodic_boundary_conditions = False
     gif_name = "measure_speed"
     time_start = 0
-    time_stop = 2*np.pi
+    time_stop = 10*np.pi
     delta_t = 1e-2
 
     animation_timestep = int(animation_interval / delta_t)
@@ -52,7 +52,15 @@ def main(display_animation=True):
     # # If we want to put something else inside of the line and see how it evolves we can do it here
     # init_state = signal.gaussian(number_of_psi - 2, std=1)
 
-    NLSE = problems.NLSE(x_start=start_x, x_stop=stop_x, number_of_psi=number_of_psi)
+    #This is where Gamma is defined. For our purposes Gamma is a list in time. If you wish for a constant Gamma create a list of constant values. Note that the standard value we have been using for gamma is -2
+    num_timesteps = (time_stop-time_start)/delta_t + 1
+    num_timesteps = int(num_timesteps)
+    gamma = np.ones(num_timesteps)
+    gamma = gamma * (-2)
+    gamma[int(0.25*num_timesteps):int(0.75*num_timesteps)] *= 1.1
+    #gamma = -2
+
+    NLSE = problems.NLSE(x_start=start_x, x_stop=stop_x, number_of_psi=number_of_psi, gamma=gamma)
 
     init_state = NLSE.get_stationary_state()
     # init_state = np.loadtxt('xf_shooting2.txt').view(complex)

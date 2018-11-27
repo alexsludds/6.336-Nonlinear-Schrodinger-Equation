@@ -139,27 +139,27 @@ class Simulation:
         while t < t_stop:
             k = 0 # Newton Method iterative index
             # Use Forward Euler in order to compute
-            x_lk = x + delta_t * f(x, u(t) ,p)
-            gamma = x + delta_t/2. * f(x,u(t),p)
+            x_lk = x + delta_t * f(x, u(t) ,p,n)
+            gamma = x + delta_t/2. * f(x,u(t),p,n)
             while True: # Newton method loop index
                 # We will compare the numerical and analytical jacobians:
-                # J = NLSE.calc_jacobian_numerical(f,x_lk,u(t),p,delta_t) #Use the numerical Jacobian
-                J = NLSE.calc_jacobian_analytical(x) #Use the analytical Jacobian
+                # J = NLSE.calc_jacobian_numerical(f,x_lk,u(t),p,delta_t, t_index=n) #Use the numerical Jacobian
+                J = NLSE.calc_jacobian_analytical(x,n) #Use the analytical Jacobian
                 # Calculate Jacobian
-                J = np.eye(J.shape[0]) - delta_t/2.*J 
+                J = np.eye(J.shape[0]) - delta_t/2.*J
                 #Create sparse version of J matrix
                 J = sparse.csc_matrix(J)
                 # Stamp RHS
-                minus_F = -(x_lk - delta_t/2.*f(x_lk,u(t),p) - gamma)
+                minus_F = -(x_lk - delta_t/2.*f(x_lk,u(t),p,n) - gamma)
                 minus_F = NLSE.n_to_2n(minus_F)
                 # Solve system
-                # delta_x = sparse.linalg.spsolve(J, minus_F) 
+                # delta_x = sparse.linalg.spsolve(J, minus_F)
                 two_x = NLSE.n_to_2n(x)
                 delta_x = sparse.linalg.minres(J,minus_F,x0 = two_x,tol = 1e-1)[0]
                 delta_x = NLSE.two_n_to_n(delta_x)
                 x_lk = x_lk + delta_x
                 magnitude_delta_x = np.max(delta_x)
-                magnitude_x_lk_gamma = np.max(x_lk - delta_t/2.*f(x_lk,u(t),p)-gamma)
+                magnitude_x_lk_gamma = np.max(x_lk - delta_t/2.*f(x_lk,u(t),p,n)-gamma)
                 # print(magnitude_delta_x,magnitude_x_lk_gamma)
                 if magnitude_delta_x < x_lk_accuracy and magnitude_x_lk_gamma < x_lk_gamma_accuracy:
                     break
@@ -170,8 +170,8 @@ class Simulation:
 
             if n % animation_timestep == 0:
                 x_arr.append(x)
-
                 bar.next()
+
         bar.finish()
         return x, x_arr
 
@@ -182,11 +182,11 @@ class Simulation:
         plt.show()
 
     # Don't benchmark this function, it is fast and gets called A LOT by forward euler
-    def dxdt_f(self, x, u, p):
+    def dxdt_f(self, x, u, p, t_index):
         if not self.nonlinear:
             return p["A"].dot(x) + p["B"].dot(u)
         else:
-            returnable = p["A"](x).dot(x) + p["B"].dot(u)
+            returnable = p["A"](x,t_index).dot(x) + p["B"].dot(u)
             return returnable
 
     def dxdt_f_trapezoid(self,x,u_previous,u_current,p,delta_t,inverse):
