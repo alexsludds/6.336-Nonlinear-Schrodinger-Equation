@@ -16,6 +16,7 @@ class AnimationClass:
         self.anim = None
         self.animation_interval = animation_interval
         self.animation_speed = speed
+        self.velocity = 1
 
         # Append to x_arr such that we have the boundary conditions
         self.x_arr = x_arr
@@ -24,6 +25,9 @@ class AnimationClass:
         # self.time_step = int(len(self.x_arr)/(self.fps*self.runtime_seconds))
         # TODO: Clean up all this mess regarding frames and playback speed
         self.n_frames = int(runtime_seconds/delta_t/animation_interval)
+
+        #We want to add vertical lines to the plot wherever diff_gamma is non-zero
+        self.gamma_change_highlighter()
 
     def include_boundary_conditions(self):
         # TODO Add ability to have boundary condition other than just zero
@@ -62,8 +66,7 @@ class AnimationClass:
                                             frames=self.n_frames, interval=self.animation_speed*self.animation_interval)
         plt.show()
 
-    def run_animation_with_propagation(self, velocity=1):
-        self.velocity = velocity
+    def run_animation_with_propagation(self):
         self.anim = animation.FuncAnimation(self.fig, self.animate_with_velocity, init_func=self.initialize,
                                             frames=self.n_frames, interval=self.animation_speed*self.animation_interval)
         spacing = (abs(self.x[-1]-self.x[0]))/self.x.shape[0]
@@ -71,6 +74,22 @@ class AnimationClass:
         right_side_boundary = self.x[-1] + spacing * number_of_elements
         plt.imshow(imread("fiber_optic.png"), zorder=0, extent=[0, right_side_boundary, -1, 1],aspect='auto')
         plt.show()
+
+    def gamma_change_highlighter(self):
+        spacing = (self.x[-1]-self.x[0])/self.x.shape[0]
+        number_of_elements = self.x.shape[0] + len(self.x_arr)*self.velocity
+        size = self.x[0] + self.x[-1] + spacing * number_of_elements
+        diff_gamma = np.diff(self.gamma)
+        blue = np.argwhere(diff_gamma > 0)
+        red  = np.argwhere(diff_gamma < 0)
+        blue = blue/self.gamma.size
+        red = red/self.gamma.size
+        for b in blue:
+            plt.axvline(x=b*size, color='blue')
+
+        for r in red:
+            plt.axvline(x=r*size, color='red')
+
 
     def create_gif(self):
         create_gif_input = input("Do you want to create a gif of the animation? (y/n)")
