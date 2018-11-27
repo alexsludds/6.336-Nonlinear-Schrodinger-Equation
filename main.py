@@ -60,7 +60,7 @@ def main(display_animation=True):
     gamma[int(0.25*num_timesteps):int(0.75*num_timesteps)] *= 1.1
     #gamma = -2
 
-    NLSE = problems.NLSE(x_start=start_x, x_stop=stop_x, number_of_psi=number_of_psi, gamma=gamma)
+    NLSE = problems.NLSE(gamma = gamma,x_start=start_x, x_stop=stop_x, number_of_psi=number_of_psi)
 
     init_state = NLSE.get_stationary_state()
     # init_state = np.loadtxt('xf_shooting2.txt').view(complex)

@@ -105,10 +105,12 @@ if __name__ == "__main__":
     time_stop = 1
     delta_t = 1e-2
 
+    gamma = np.array([-2 for i in range(int((time_stop - time_start)/delta_t + 1))])
+
     sim = Simulation(x_start=start_x, x_stop=stop_x, number_of_psi=number_of_psi,
                      number_of_spatial_dimensions=number_of_spatial_dimensions, nonlinear=True)
 
-    NLSE = problems.NLSE(x_start=start_x, x_stop=stop_x, number_of_psi=number_of_psi, periodic=True)
+    NLSE = problems.NLSE(gamma,x_start=start_x, x_stop=stop_x, number_of_psi=number_of_psi, periodic=True)
     init_state = NLSE.get_stationary_state()
     init_state = 0.7*np.exp(-NLSE.linspace**2/2)
 
