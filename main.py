@@ -95,7 +95,7 @@ def main(display_animation=True):
     if display_animation:
         ani = AnimationClass(animation_interval=animation_timestep,
                              x=np.linspace(start_x, stop_x, number_of_psi),
-                             x_arr=x_arr, runtime_seconds=time_stop, delta_t=delta_t,
+                             x_arr=x_arr, gamma = gamma ,runtime_seconds=time_stop, delta_t=delta_t,
                              gif_name=gif_name, speed=animation_speed)
         ani.run_animation_with_propagation()
         ani.create_gif()

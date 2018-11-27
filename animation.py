@@ -4,13 +4,14 @@ import matplotlib.pyplot as plt
 from scipy.misc import imread
 
 class AnimationClass:
-    def __init__(self, animation_interval, x, x_arr, runtime_seconds=10, delta_t=0.005,
+    def __init__(self, animation_interval, x, x_arr, gamma, runtime_seconds=10, delta_t=0.005,
                  gif_name="test.gif", speed=1):
         self.fig = plt.figure(figsize=(8, 6), dpi=200)
         self.ax = plt.axes(xlim=(0, 1), ylim=(-1, 1))
         self.l1, = plt.plot([], [], color='b')
         self.l2, = plt.plot([], [], color='g')
         self.x = x
+        self.gamma = gamma
         self.gif_name = gif_name
         self.anim = None
         self.animation_interval = animation_interval
@@ -42,7 +43,7 @@ class AnimationClass:
         spacing = (self.x[-1]-self.x[0])/self.x.shape[0]
         # We update this by using an array of size   self.x.shape[0] + number_of_time_steps*velocity
         number_of_elements = self.x.shape[0] + len(self.x_arr)*self.velocity
-        extended_x = np.linspace(start=self.x[0], stop=self.x[0] + spacing * number_of_elements ,num= number_of_elements)
+        extended_x = np.linspace(start=self.x[0], stop=self.x[-1] + spacing * number_of_elements ,num= number_of_elements)
         # We want to get x_arr and append time_step * velocity  zeros to the beginning of each sample
         new_x_arr = np.zeros(number_of_elements, dtype=np.complex128)
         new_x_arr[i*self.velocity: i*self.velocity + len(self.x_arr[i])] = self.x_arr[i]
@@ -67,7 +68,7 @@ class AnimationClass:
                                             frames=self.n_frames, interval=self.animation_speed*self.animation_interval)
         spacing = (abs(self.x[-1]-self.x[0]))/self.x.shape[0]
         number_of_elements = self.x.shape[0] + len(self.x_arr)*self.velocity
-        right_side_boundary = self.x[0] + spacing * number_of_elements
+        right_side_boundary = self.x[-1] + spacing * number_of_elements
         plt.imshow(imread("fiber_optic.png"), zorder=0, extent=[0, right_side_boundary, -1, 1],aspect='auto')
         plt.show()
 
