@@ -73,7 +73,7 @@ class AnimationClass:
         number_of_elements = self.x.shape[0] + len(self.x_arr)*self.velocity
         right_side_boundary = self.x[-1] + spacing * number_of_elements
         plt.imshow(imread("fiber_optic.png"), zorder=0, extent=[0, right_side_boundary, -1, 1],aspect='auto')
-        plt.show()
+        plt.show(block=False)
 
     def gamma_change_highlighter(self):
         spacing = (self.x[-1]-self.x[0])/self.x.shape[0]

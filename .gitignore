@@ -9,6 +9,7 @@ __pycache__/
 #Content from gif and mp4 creation
 multimedia/
 PM3.py
+plot.py
 
 # Files creates for testing
 test.py

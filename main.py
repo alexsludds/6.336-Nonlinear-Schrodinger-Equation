@@ -4,7 +4,6 @@ from scipy.misc import imread
 import scipy.constants
 import matplotlib.pyplot as plt
 # We are using the qt backend because tkinter backend does not allow for gif creation without an open window
-# matplotlib.use("Qt4Agg")
 from progress.bar import Bar
 import problems
 from animation import AnimationClass
@@ -22,10 +21,10 @@ def main(display_animation=True):
     # This constant allows for there to be runtime_in_seconds / animation_constant number of frames output animation.
     # Lower constant = faster animation.
     animation_interval = 0.1  # Animation constant associated with coarseness.
-    animation_speed = 1./2  # Animation speed multiplier
+    animation_speed = 10.  # Animation speed multiplier
     plot_stationary_solution = False
     periodic_boundary_conditions = False
-    gif_name = "measure_speed"
+    gif_name = "power_plot"
     time_start = 0
     time_stop = 10*np.pi
     delta_t = 1e-2
@@ -57,8 +56,18 @@ def main(display_animation=True):
     num_timesteps = int(num_timesteps)
     gamma = np.ones(num_timesteps)
     gamma = gamma * (-2)
-    gamma[int(0.25*num_timesteps):int(0.75*num_timesteps)] *= 1.1
-    #gamma = -2
+    # gamma[int(0.05*num_timesteps):int(0.10*num_timesteps)] *= 1.25
+
+    # gamma[int(0.15*num_timesteps):int(0.20*num_timesteps)] *= 1.25
+    # gamma[int(0.25*num_timesteps):int(0.30*num_timesteps)] *= 1.25
+    # gamma[int(0.35*num_timesteps):int(0.40*num_timesteps)] *= 1.25
+    # gamma[int(0.45*num_timesteps):int(0.50*num_timesteps)] *= 1.25
+    # gamma[int(0.55*num_timesteps):int(0.60*num_timesteps)] *= 1.25
+    # gamma[int(0.65*num_timesteps):int(0.70*num_timesteps)] *= 1.25
+    # gamma[int(0.75*num_timesteps):int(0.80*num_timesteps)] *= 1.25
+    # gamma[int(0.85*num_timesteps):int(0.90*num_timesteps)] *= 1.25
+    # gamma[int(0.95*num_timesteps):int(1.00*num_timesteps)] *= 1.25
+    # #gamma = -2
 
     NLSE = problems.NLSE(gamma = gamma,x_start=start_x, x_stop=stop_x, number_of_psi=number_of_psi)
 
@@ -90,7 +99,8 @@ def main(display_animation=True):
     x_final, x_arr = sim.trapezoidal_nl_iterative(sim.dxdt_f, u, init_state, p, t_start=time_start, t_stop=time_stop,
                                                   delta_t=delta_t, animation_timestep=animation_timestep, NLSE=NLSE)
 
-
+    # print(x_arr[0].shape)
+    x_arr = [np.abs(i)**2 for i in x_arr ]
     # Display animation
     if display_animation:
         ani = AnimationClass(animation_interval=animation_timestep,
